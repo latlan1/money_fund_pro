@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Compare tax-equivalent yields across Schwab money market funds based on your tax situation">
+    <title>Money Market Fund Tax-Equivalent Yield Optimizer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    <script src="js/tax-calculator.js" defer></script>
+    <script src="js/chart-handler.js" defer></script>
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="header__title">💰 Money Market Fund Optimizer</h1>
+            <p class="header__subtitle">Compare tax-equivalent yields to maximize your cash returns</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main container">
+        
+        <!-- Tax Profile Section -->
+        <section class="section tax-profile" id="tax-profile">
+            <h2 class="section__title">Your Tax Profile</h2>
+            <p class="section__description">Enter your tax information to calculate personalized yields</p>
+            
+            <form class="profile-form" id="profile-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="income" class="form-label">
+                            Annual Income
+                            <span class="tooltip" data-tooltip="Your total taxable income for federal tax purposes">ℹ️</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <span class="input-prefix">$</span>
+                            <input 
+                                type="number" 
+                                id="income" 
+                                name="income" 
+                                class="form-input" 
+                                value="200000" 
+                                min="0" 
+                                step="1000"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="filing-status" class="form-label">
+                            Filing Status
+                            <span class="tooltip" data-tooltip="Your tax filing status determines your federal tax bracket">ℹ️</span>
+                        </label>
+                        <select id="filing-status" name="filingStatus" class="form-select" required>
+                            <option value="single" selected>Single</option>
+                            <option value="married">Married Filing Jointly</option>
+                            <option value="head">Head of Household</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state" class="form-label">
+                            State
+                            <span class="tooltip" data-tooltip="Your state of residence for tax purposes">ℹ️</span>
+                        </label>
+                        <select id="state" name="state" class="form-select" required>
+                            <option value="MO" selected>Missouri</option>
+                            <option value="AL">Alabama</option>
+                            <option value="CA">California</option>
+                            <option value="CO">Colorado</option>
+                            <option value="CT">Connecticut</option>
+                            <option value="FL">Florida</option>
+                            <option value="GA">Georgia</option>
+                            <option value="IL">Illinois</option>
+                            <option value="MA">Massachusetts</option>
+                            <option value="NY">New York</option>
+                            <option value="NC">North Carolina</option>
+                            <option value="OH">Ohio</option>
+                            <option value="PA">Pennsylvania</option>
+                            <option value="TX">Texas</option>
+                            <option value="VA">Virginia</option>
+                            <option value="WA">Washington</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group form-actions">
+                        <button type="submit" class="btn btn-primary">Calculate Yields</button>
+                    </div>
+                </div>
+
+                <div class="tax-summary" id="tax-summary">
+                    <div class="tax-summary__item">
+                        <span class="tax-summary__label">Federal Rate:</span>
+                        <span class="tax-summary__value" id="federal-rate">--</span>
+                    </div>
+                    <div class="tax-summary__item">
+                        <span class="tax-summary__label">State Rate:</span>
+                        <span class="tax-summary__value" id="state-rate">--</span>
+                    </div>
+                    <div class="tax-summary__item">
+                        <span class="tax-summary__label">Combined Rate:</span>
+                        <span class="tax-summary__value" id="combined-rate">--</span>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Section -->
+        <section class="section results-section" id="results-section">
+            <div class="section-header">
+                <h2 class="section__title">Fund Comparison Results</h2>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" id="refresh-btn">
+                        <span class="btn-icon">🔄</span> Refresh Data
+                    </button>
+                    <button class="btn btn-secondary" id="export-btn">
+                        <span class="btn-icon">💾</span> Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading fund data...</p>
+            </div>
+
+            <!-- Recommendation Card -->
+            <div class="recommendation-card hidden" id="recommendation-card">
+                <div class="recommendation-card__badge">🎯 Top Recommendation</div>
+                <h3 class="recommendation-card__title" id="rec-fund-name">--</h3>
+                <div class="recommendation-card__stats">
+                    <div class="stat">
+                        <div class="stat__value" id="rec-tey">--</div>
+                        <div class="stat__label">Tax-Equivalent Yield</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__value" id="rec-net-yield">--</div>
+                        <div class="stat__label">Net Yield</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat__value" id="rec-annual-return">--</div>
+                        <div class="stat__label">Est. Annual Return on $10k</div>
+                    </div>
+                </div>
+                <p class="recommendation-card__explanation" id="rec-explanation">--</p>
+            </div>
+
+            <!-- Results Table -->
+            <div class="table-wrapper hidden" id="table-wrapper">
+                <table class="results-table" id="results-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-column="fundName">
+                                Fund Name
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable" data-column="symbol">
+                                Ticker
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable" data-column="category">
+                                Category
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable" data-column="grossYield">
+                                7-Day Yield
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable" data-column="expenseRatio">
+                                Expense Ratio
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable" data-column="netYield">
+                                Net Yield
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                            <th class="sortable active desc" data-column="taxEquivalentYield">
+                                Tax-Equiv Yield
+                                <span class="sort-icon">▼</span>
+                            </th>
+                            <th class="sortable" data-column="annualReturn">
+                                Annual Return ($10k)
+                                <span class="sort-icon">⬍</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-tbody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <div class="table-footer">
+                    <p class="table-footer__text">
+                        Last updated: <span id="last-updated">--</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div class="error-state hidden" id="error-state">
+                <div class="error-state__icon">⚠️</div>
+                <h3 class="error-state__title">Unable to Load Data</h3>
+                <p class="error-state__message" id="error-message">--</p>
+                <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+            </div>
+        </section>
+
+        <!-- Historical Chart Section -->
+        <section class="section chart-section" id="chart-section">
+            <h2 class="section__title">Historical Yield Trends</h2>
+            <p class="section__description">Track how yields have changed over time</p>
+            
+            <div class="chart-controls">
+                <div class="form-group">
+                    <label for="fund-select" class="form-label">Select Funds to Compare:</label>
+                    <div class="fund-selector" id="fund-selector">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date-range" class="form-label">Time Period:</label>
+                    <select id="date-range" class="form-select">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="180">Last 6 Months</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="yield-chart"></canvas>
+            </div>
+
+            <div class="chart-legend" id="chart-legend">
+                <h4>Fund Categories:</h4>
+                <ul>
+                    <li><span class="legend-color" style="background: #0066cc;"></span> Taxable - Subject to all taxes</li>
+                    <li><span class="legend-color" style="background: #28a745;"></span> Treasury - State tax-free</li>
+                    <li><span class="legend-color" style="background: #ffc107;"></span> Municipal - Federal tax-free</li>
+                    <li><span class="legend-color" style="background: #17a2b8;"></span> State Municipal - Both tax-free (residents only)</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Educational Section -->
+        <section class="section info-section">
+            <h2 class="section__title">Understanding Tax-Equivalent Yield</h2>
+            <div class="info-cards">
+                <div class="info-card">
+                    <h3 class="info-card__title">💡 What is it?</h3>
+                    <p class="info-card__text">
+                        Tax-equivalent yield shows what a taxable investment would need to yield 
+                        to match the after-tax return of a tax-advantaged investment.
+                    </p>
+                </div>
+                
+                <div class="info-card">
+                    <h3 class="info-card__title">📊 Why it matters</h3>
+                    <p class="info-card__text">
+                        A 4% tax-free yield might be better than a 6% taxable yield, depending on 
+                        your tax bracket. This tool does the math for you.
+                    </p>
+                </div>
+                
+                <div class="info-card">
+                    <h3 class="info-card__title">🧮 The formula</h3>
+                    <p class="info-card__text">
+                        TEY = Net Yield ÷ (1 - Tax Rate)<br>
+                        Where Net Yield = Gross Yield - Expense Ratio
+                    </p>
+                </div>
+                
+                <div class="info-card">
+                    <h3 class="info-card__title">📝 Example</h3>
+                    <p class="info-card__text">
+                        At 35% tax rate, a 3.5% tax-free yield equals a 5.38% taxable yield.
+                        Same after-tax return, but tax-free is more efficient.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__disclaimer">
+                <div class="disclaimer-badge">⚠️ Educational Purpose Only</div>
+                <p class="footer__disclaimer-text">
+                    <strong>Important:</strong> This tool is for educational and informational purposes only. 
+                    It does not constitute financial, tax, or investment advice. Money market fund yields change 
+                    frequently and past performance does not guarantee future results. Tax situations vary by 
+                    individual circumstances. Always consult with a qualified tax professional or financial 
+                    advisor before making investment decisions. The calculations provided are estimates based 
+                    on marginal tax rates and may not account for all tax scenarios such as Alternative Minimum 
+                    Tax (AMT), phase-outs, or other limitations.
+                </p>
+            </div>
+            <p class="footer__text">
+                Data sourced from Schwab Money Market Funds. 
+                Tax calculations use 2024/2025 federal tax brackets and state marginal rates.
+            </p>
+            <p class="footer__version">Version 1.0.0 | Last Updated: December 2024</p>
+        </div>
+    </footer>
+
+</body>
+</html>
