@@ -31,7 +31,6 @@ npm install
 
 This will install all required packages including:
 - Express (web server)
-- better-sqlite3 (database)
 - Puppeteer (web scraping)
 - Chart.js (visualization)
 - And other dependencies

@@ -23,7 +23,6 @@ A web application that helps optimize cash allocation by comparing tax-equivalen
 ### Prerequisites
 
 - Node.js 16+ and npm
-- SQLite3
 
 ### Installation
 
@@ -64,7 +63,7 @@ npm run dev
 - Interactive charts show yield movements
 
 ### 4. Refresh Data
-- Click "Refresh Data" to fetch latest yields from Schwab
+- Click "Refresh Data" to fetch latest yields from Schwab (https://www.schwabassetmanagement.com/products/money-fund-yields or https://www.schwab.com/money-market-funds)
 - Data automatically cached for 6 hours
 
 ### 5. Export Results

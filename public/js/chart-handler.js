@@ -1,288 +1,111 @@
 /**
  * Chart Handler Module
- * Manages Chart.js visualization for historical yield data
+ * Manages Chart.js visualization for category-level averages
  */
-
 const ChartHandler = (() => {
     let yieldChart = null;
     
-    // Chart color scheme based on fund categories
+    // Updated colors to match categories exactly
     const CATEGORY_COLORS = {
-        'taxable': {
-            background: 'rgba(0, 102, 204, 0.2)',
-            border: 'rgba(0, 102, 204, 1)',
-            point: 'rgba(0, 102, 204, 0.8)'
-        },
-        'treasury': {
-            background: 'rgba(40, 167, 69, 0.2)',
-            border: 'rgba(40, 167, 69, 1)',
-            point: 'rgba(40, 167, 69, 0.8)'
-        },
-        'municipal': {
-            background: 'rgba(255, 193, 7, 0.2)',
-            border: 'rgba(255, 193, 7, 1)',
-            point: 'rgba(255, 193, 7, 0.8)'
-        },
-        'state-municipal': {
-            background: 'rgba(23, 162, 184, 0.2)',
-            border: 'rgba(23, 162, 184, 1)',
-            point: 'rgba(23, 162, 184, 0.8)'
-        }
+        'Taxable Money Funds': { border: 'rgba(0, 102, 204, 1)', background: 'rgba(0, 102, 204, 0.1)' },
+        'Treasury Money Funds': { border: 'rgba(40, 167, 69, 1)', background: 'rgba(40, 167, 69, 0.1)' },
+        'Tax-Exempt Money Funds': { border: 'rgba(255, 159, 64, 1)', background: 'rgba(255, 159, 64, 0.1)' },
+        'State-Specific': { border: 'rgba(153, 102, 255, 1)', background: 'rgba(153, 102, 255, 0.1)' }
     };
 
-    /**
-     * Initialize the chart
-     * @param {string} canvasId - ID of canvas element
-     */
     function initChart(canvasId) {
         const ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.error('Chart canvas not found');
-            return;
-        }
+        if (!ctx || typeof Chart === 'undefined') return;
 
-        // Destroy existing chart if it exists
-        if (yieldChart) {
-            yieldChart.destroy();
-        }
+        if (yieldChart) yieldChart.destroy();
 
         yieldChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: []
-            },
+            data: { labels: [], datasets: [] },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
+                plugins: { 
+                    legend: { display: true, position: 'top' },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
                         callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += context.parsed.y.toFixed(2) + '%';
-                                return label;
-                            }
+                            label: (ctx) => `${ctx.dataset.label} Avg: ${ctx.parsed.y.toFixed(2)}%`
                         }
-                    },
-                    title: {
-                        display: false
                     }
                 },
                 scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Date',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Yield (%)',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value.toFixed(2) + '%';
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
+                    y: { 
+                        beginAtZero: false,
+                        ticks: { callback: (v) => v.toFixed(2) + '%' },
+                        title: { display: true, text: 'Average 7-Day Yield' }
                     }
                 }
             }
         });
-
         return yieldChart;
     }
 
-    /**
-     * Update chart with new data
-     * @param {Array} historicalData - Array of historical data objects
-     * @param {Array} selectedFunds - Array of selected fund names
-     */
-    function updateChart(historicalData, selectedFunds) {
-        if (!yieldChart) {
-            console.error('Chart not initialized');
-            return;
-        }
-
-        // Extract unique dates and sort them
-        const datesSet = new Set();
-        historicalData.forEach(item => {
-            datesSet.add(item.date);
-        });
-        const dates = Array.from(datesSet).sort();
-
-        // Format dates for display
-        const labels = dates.map(date => {
-            const d = new Date(date);
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        });
-
-        // Create datasets for each selected fund
-        const datasets = selectedFunds.map(fundName => {
-            // Find fund data
-            const fundData = historicalData.filter(item => item.fundName === fundName);
-            
-            if (fundData.length === 0) return null;
-
-            // Get category for color scheme
-            const category = fundData[0].category || 'taxable';
-            const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.taxable;
-
-            // Map yields to dates
-            const data = dates.map(date => {
-                const entry = fundData.find(item => item.date === date);
-                return entry ? entry.netYield : null;
-            });
-
-            return {
-                label: fundName,
-                data: data,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                borderWidth: 2,
-                pointBackgroundColor: colors.point,
-                pointBorderColor: colors.border,
-                pointBorderWidth: 1,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                tension: 0.1,
-                fill: false
-            };
-        }).filter(dataset => dataset !== null);
-
-        // Update chart
-        yieldChart.data.labels = labels;
-        yieldChart.data.datasets = datasets;
-        yieldChart.update();
-    }
-
-    /**
-     * Fetch historical data from API
-     * @param {Array} fundNames - Array of fund names to fetch
-     * @param {number} days - Number of days to fetch
-     * @returns {Promise<Array>} Historical data
-     */
-    async function fetchHistoricalData(fundNames, days = 30) {
+    async function fetchHistoricalData(days = 30) {
+        const filename = 'schwab_money_funds_12-22-2025.csv';
         try {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - days);
-
-            const fundNamesParam = fundNames.map(name => 
-                encodeURIComponent(name)
-            ).join(',');
-
-            const response = await fetch(
-                `/api/history/compare?fundNames=${fundNamesParam}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data;
+            const response = await fetch(filename + '?cb=' + Date.now());
+            if (!response.ok) return [];
+            
+            const text = await response.text();
+            const allRows = window.parseCSV(text);
+            
+            // Return all data so we can calculate averages across the whole category
+            return allRows.map(row => ({
+                category: row['Category'] || 'Taxable Money Funds',
+                fundName: row['FundName'],
+                date: row['Date'] || new Date().toISOString().split('T')[0],
+                netYield: parseFloat((row['7DayYieldWithWaivers'] || '0').replace('%', ''))
+            }));
         } catch (error) {
-            console.error('Error fetching historical data:', error);
+            console.error('Error loading data for chart:', error);
             return [];
         }
     }
 
-    /**
-     * Clear the chart
-     */
-    function clearChart() {
-        if (yieldChart) {
-            yieldChart.data.labels = [];
-            yieldChart.data.datasets = [];
-            yieldChart.update();
-        }
+    function updateChart(historicalData) {
+        if (!yieldChart || !historicalData.length) return;
+
+        // 1. Identify all unique dates and categories
+        const dates = [...new Set(historicalData.map(d => d.date))].sort();
+        const categories = [...new Set(historicalData.map(d => d.category))];
+
+        // 2. Build datasets by calculating the average for each category on each date
+        const datasets = categories.map(category => {
+            const colors = CATEGORY_COLORS[category] || { border: '#666', background: 'rgba(0,0,0,0.1)' };
+            
+            const dataPoints = dates.map(date => {
+                // Filter all funds in this category on this specific date
+                const entries = historicalData.filter(d => d.category === category && d.date === date);
+                if (entries.length === 0) return null;
+                
+                // Calculate Average
+                const sum = entries.reduce((acc, curr) => acc + curr.netYield, 0);
+                return sum / entries.length;
+            });
+
+            return {
+                label: category,
+                data: dataPoints,
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4
+            };
+        });
+
+        // 3. Update Chart
+        yieldChart.data.labels = dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        yieldChart.data.datasets = datasets;
+        yieldChart.update();
     }
 
-    /**
-     * Destroy the chart
-     */
-    function destroyChart() {
-        if (yieldChart) {
-            yieldChart.destroy();
-            yieldChart = null;
-        }
-    }
-
-    /**
-     * Export chart as image
-     * @returns {string} Base64 encoded image
-     */
-    function exportChart() {
-        if (yieldChart) {
-            return yieldChart.toBase64Image();
-        }
-        return null;
-    }
-
-    /**
-     * Get chart instance
-     * @returns {Chart} Chart.js instance
-     */
-    function getChart() {
-        return yieldChart;
-    }
-
-    // Public API
-    return {
-        initChart,
-        updateChart,
-        fetchHistoricalData,
-        clearChart,
-        destroyChart,
-        exportChart,
-        getChart
-    };
+    return { initChart, updateChart, fetchHistoricalData };
 })();
 
-// Make available globally
 window.ChartHandler = ChartHandler;

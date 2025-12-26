@@ -71,22 +71,11 @@ Display sortable table with:
 - Clear explanation of why it's optimal for the user's situation
 
 ### 5. Historical Tracking
-- Store fund yield data in SQLite database
+- Store fund yield data in csv
 - Track yields over time for each fund
 - Display historical chart showing yield trends
 - Allow users to see how optimal choice changes over time
 
-**Database Schema:**
-```sql
-CREATE TABLE fund_yields (
-  id INTEGER PRIMARY KEY,
-  fund_name TEXT,
-  category TEXT,
-  yield REAL,
-  expense_ratio REAL,
-  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
 
 ## User Workflow
 
@@ -108,7 +97,7 @@ CREATE TABLE fund_yields (
 
 ### Backend/Data Processing
 - Web scraping of Schwab money market page (via proxy or CORS-friendly method)
-- SQLite database for historical storage
+- csv for historical data storage
 - Tax calculation engine
 - Data refresh mechanism (manual or automatic)
 

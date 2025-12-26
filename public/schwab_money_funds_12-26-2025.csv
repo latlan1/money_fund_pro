@@ -1,0 +1,19 @@
+Category,FundName,Ticker,7DayYieldWithWaivers,7DayYieldWithoutWaivers,MinimumInitialInvestment,GrossExpenseRatio,NetExpenseRatio,TotalNetAssets,NAV,EligibleInvestors,Notes
+Taxable Money Funds,Schwab Prime Advantage Money Fund - Investor Shares,SWVXX,3.56%,3.55%,No Minimum,0.35%,0.34%,"$249,637,961,368","$1.00",Retail,
+Taxable Money Funds,Schwab Prime Advantage Money Fund- Ultra Shares,SNAXX,3.71%,3.70%,"$1,000,000",0.20%,0.19%,"$141,858,486,855","$1.00",Retail,
+Taxable Money Funds,Schwab Government Money Fund - Investor Shares,SNVXX,3.46%,3.44%,No Minimum,0.35%,0.34%,"$32,850,504,085","$1.00",Retail/Institutional,
+Taxable Money Funds,Schwab Government Money Fund - Ultra Shares,SGUXX,3.61%,3.59%,"$1,000,000",0.20%,0.19%,"$33,867,677,706","$1.00",Retail/Institutional,
+Taxable Money Funds,Schwab Treasury Obligations Money Fund - Investor Shares,SNOXX,3.45%,3.44%,No Minimum,0.35%,0.34%,"$36,843,676,049","$1.00",Retail/Institutional,
+Taxable Money Funds,Schwab Treasury Obligations Money Fund - Ultra Shares,SCOXX,3.60%,3.59%,"$1,000,000",0.20%,0.19%,"$35,718,602,889","$1.00",Retail/Institutional,
+Taxable Money Funds,Schwab U.S. Treasury Money Fund - Investor Shares,SNSXX,3.51%,3.50%,No Minimum,0.35%,0.34%,"$38,995,232,480","$1.00",Retail/Institutional,
+Taxable Money Funds,Schwab U.S. Treasury Money Fund - Ultra Shares,SUTXX,3.66%,3.65%,"$1,000,000",0.20%,0.19%,"$59,290,168,353","$1.00",Retail/Institutional,
+Tax-Exempt Money Funds,Schwab Municipal Money Fund - Investor Shares,SWTXX,2.75%,2.75%,No Minimum,0.35%,0.34%,"$4,338,553,818","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab Municipal Money Fund - Ultra Shares,SWOXX,2.90%,2.90%,"$1,000,000",0.20%,0.19%,"$14,154,282,578","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab AMT Tax-Free Money Fund - Investor Shares,SWWXX,2.73%,2.72%,No Minimum,0.36%,0.34%,"$1,283,176,494","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab AMT Tax-Free Money Fund - Ultra Shares,SCTXX,2.88%,2.87%,"$1,000,000",0.21%,0.19%,"$2,867,282,657","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab California Municipal Money Fund - Investor Shares,SWKXX,2.28%,2.28%,No Minimum,0.35%,0.34%,"$2,515,322,744","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab California Municipal Money Fund - Ultra Shares,SCAXX,2.43%,2.43%,"$1,000,000",0.20%,0.19%,"$6,635,704,517","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab New York Municipal Money Fund - Investor Shares,SWYXX,2.82%,2.81%,No Minimum,0.36%,0.34%,"$1,057,432,125","$1.00",Retail,
+Tax-Exempt Money Funds,Schwab New York Municipal Money Fund - Ultra Shares,SNYXX,2.97%,2.96%,"$1,000,000",0.21%,0.19%,"$2,004,991,757","$1.00",Retail,
+Sweep Money Fund,Schwab Government Money Fund - Sweep Shares,SWGXX,3.36%,3.34%,No Minimum,0.45%,0.44%,"$22,899,367,635","$1.00",,Sweep shares
+Money Market ETF,Schwab Government Money Market ETF,SGVT,3.48%,,,0.28%,,"$419,541,038","$100.37",Retail/Institutional,ETF; NAV not stable; trades on NYSE Arca
