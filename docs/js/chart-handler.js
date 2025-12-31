@@ -5,17 +5,36 @@
 const ChartHandler = (() => {
     let yieldChart = null;
     
-    // Updated colors to match categories exactly
+    // Colors matching the HTML legend (bottom of page)
     const CATEGORY_COLORS = {
-        'Taxable Money Funds': { border: 'rgba(0, 102, 204, 1)', background: 'rgba(0, 102, 204, 0.1)' },
-        'Treasury Money Funds': { border: 'rgba(40, 167, 69, 1)', background: 'rgba(40, 167, 69, 0.1)' },
-        'Tax-Exempt Money Funds': { border: 'rgba(255, 159, 64, 1)', background: 'rgba(255, 159, 64, 0.1)' },
-        'State-Specific': { border: 'rgba(153, 102, 255, 1)', background: 'rgba(153, 102, 255, 0.1)' }
+        'Taxable Money Funds': { 
+            border: '#0066cc', 
+            background: 'rgba(0, 102, 204, 0.1)',
+            description: 'Taxable - Subject to all taxes'
+        },
+        'Treasury Money Funds': { 
+            border: '#28a745', 
+            background: 'rgba(40, 167, 69, 0.1)',
+            description: 'Treasury - State tax-free'
+        },
+        'Tax-Exempt Money Funds': { 
+            border: '#ffc107', 
+            background: 'rgba(255, 193, 7, 0.1)',
+            description: 'Municipal - Federal tax-free'
+        },
+        'State-Specific': { 
+            border: '#17a2b8', 
+            background: 'rgba(23, 162, 184, 0.1)',
+            description: 'State Municipal - Both tax-free (residents only)'
+        }
     };
 
     function initChart(canvasId) {
         const ctx = document.getElementById(canvasId);
-        if (!ctx || typeof Chart === 'undefined') return;
+        if (!ctx || typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded or canvas not found');
+            return null;
+        }
 
         if (yieldChart) yieldChart.destroy();
 
@@ -26,18 +45,51 @@ const ChartHandler = (() => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { 
-                    legend: { display: true, position: 'top' },
+                    legend: { 
+                        display: true, 
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 15,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: (chart) => {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => ({
+                                    text: dataset.label,
+                                    fillStyle: dataset.borderColor,
+                                    strokeStyle: dataset.borderColor,
+                                    lineWidth: 2,
+                                    hidden: !chart.isDatasetVisible(i),
+                                    index: i,
+                                    pointStyle: 'circle'
+                                }));
+                            }
+                        }
+                    },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => `${ctx.dataset.label} Avg: ${ctx.parsed.y.toFixed(2)}%`
+                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`
                         }
                     }
                 },
                 scales: {
                     y: { 
                         beginAtZero: false,
-                        ticks: { callback: (v) => v.toFixed(2) + '%' },
-                        title: { display: true, text: 'Average 7-Day Yield' }
+                        ticks: { 
+                            callback: (v) => v.toFixed(2) + '%'
+                        },
+                        title: { 
+                            display: true, 
+                            text: 'Average 7-Day Yield' 
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: false
+                        }
                     }
                 }
             }
@@ -81,13 +133,15 @@ const ChartHandler = (() => {
             
             if ((min.includes('no minimum') || min === '$0') && eligible.includes('retail')) {
                 const yield7Day = parseFloat((row['7DayYieldWithWaivers'] || '0').replace('%', ''));
-                const category = categorizeFund(row);
                 
-                categories[category].push(yield7Day);
+                if (!isNaN(yield7Day) && yield7Day > 0) {
+                    const category = categorizeFund(row);
+                    categories[category].push(yield7Day);
+                }
             }
         });
         
-        // Calculate averages
+        // Calculate averages and log for debugging
         const averages = {};
         Object.keys(categories).forEach(cat => {
             const yields = categories[cat];
@@ -95,6 +149,9 @@ const ChartHandler = (() => {
                 ? yields.reduce((sum, y) => sum + y, 0) / yields.length 
                 : 0;
         });
+        
+        console.log('Category counts:', Object.keys(categories).map(k => `${k}: ${categories[k].length}`));
+        console.log('Category averages:', averages);
         
         return averages;
     }
@@ -108,8 +165,8 @@ const ChartHandler = (() => {
             const dataFiles = [
                 { date: '2025-12-22', file: 'schwab_money_funds_12-22-2025.csv' },
                 // Add more dated files as you collect them:
-                // { date: '2025-12-15', file: 'schwab_money_funds_12-15-2025.csv' },
-                // { date: '2025-12-08', file: 'schwab_money_funds_12-08-2025.csv' },
+                { date: '2025-12-26', file: 'schwab_money_funds_12-26-2025.csv' },
+                { date: '2025-12-31', file: 'schwab_money_funds_12-31-2025.csv' },
                 // { date: '2025-12-01', file: 'schwab_money_funds_12-01-2025.csv' },
             ];
             
@@ -119,30 +176,43 @@ const ChartHandler = (() => {
             
             const relevantFiles = dataFiles.filter(f => new Date(f.date) >= cutoffDate);
             
+            if (relevantFiles.length === 0) {
+                console.warn('No relevant CSV files found for date range');
+                return [];
+            }
+            
             // Load and process each file
             const historicalData = [];
             
             for (const fileInfo of relevantFiles) {
-                const response = await fetch(fileInfo.file + '?cb=' + Date.now());
-                if (!response.ok) {
-                    console.warn(`Could not load ${fileInfo.file}`);
-                    continue;
+                try {
+                    const response = await fetch(fileInfo.file + '?cb=' + Date.now());
+                    if (!response.ok) {
+                        console.warn(`Could not load ${fileInfo.file}: ${response.status}`);
+                        continue;
+                    }
+                    
+                    const text = await response.text();
+                    const data = window.parseCSV(text);
+                    
+                    console.log(`Loaded ${data.length} rows from ${fileInfo.file}`);
+                    
+                    // Calculate category averages for this date
+                    const categoryYields = calculateCategoryAverages(data);
+                    
+                    historicalData.push({
+                        date: fileInfo.date,
+                        ...categoryYields
+                    });
+                } catch (fileError) {
+                    console.error(`Error processing ${fileInfo.file}:`, fileError);
                 }
-                
-                const text = await response.text();
-                const data = window.parseCSV(text);
-                
-                // Calculate category averages for this date
-                const categoryYields = calculateCategoryAverages(data);
-                
-                historicalData.push({
-                    date: fileInfo.date,
-                    ...categoryYields
-                });
             }
             
             // Sort by date
             historicalData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            console.log('Historical data loaded:', historicalData);
             
             return historicalData;
         } catch (error) {
@@ -155,7 +225,15 @@ const ChartHandler = (() => {
      * Update chart with historical data
      */
     function updateChart(historicalData) {
-        if (!yieldChart || !historicalData.length) return;
+        if (!yieldChart) {
+            console.error('Chart not initialized');
+            return;
+        }
+        
+        if (!historicalData || historicalData.length === 0) {
+            console.warn('No historical data to display');
+            return;
+        }
 
         // Extract dates for labels
         const labels = historicalData.map(d => {
@@ -163,21 +241,35 @@ const ChartHandler = (() => {
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         });
         
-        // Create datasets for each category
-        const datasets = Object.keys(CATEGORY_COLORS).map(category => {
+        // Create datasets for each category with correct colors
+        const datasets = [];
+        
+        Object.keys(CATEGORY_COLORS).forEach(category => {
             const colors = CATEGORY_COLORS[category];
+            const dataPoints = historicalData.map(d => d[category] || 0);
             
-            return {
-                label: category,
-                data: historicalData.map(d => d[category] || 0),
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4
-            };
+            // Only add dataset if it has non-zero values
+            if (dataPoints.some(val => val > 0)) {
+                datasets.push({
+                    label: category,
+                    data: dataPoints,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    pointBackgroundColor: colors.border,
+                    pointBorderColor: colors.border,
+                    pointHoverBackgroundColor: colors.border,
+                    pointHoverBorderColor: '#fff',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 2
+                });
+            }
         });
 
+        console.log('Updating chart with datasets:', datasets.length);
+        
         // Update Chart
         yieldChart.data.labels = labels;
         yieldChart.data.datasets = datasets;
