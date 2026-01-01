@@ -102,7 +102,8 @@ const App = (() => {
         hideError();
         
         try {
-            const filename = 'schwab_money_funds_12-22-2025.csv';
+            // Use the most recent CSV file for the main table
+            const filename = 'schwab_money_funds_12-31-2025.csv';
             state.csvFilename = filename;
             
             const response = await fetch(filename + '?cb=' + Date.now());
@@ -135,19 +136,31 @@ const App = (() => {
         }
     }
 
+    /**
+     * Categorize fund based on CSV Category column or fund name
+     * Maps CSV display categories to internal category keys that match tax-calculator.js
+     */
     function categorizeFund(row) {
+        // The CSV has a Category column with display names like "Taxable Money Funds"
+        // We need to map these to internal keys: taxable, treasury, municipal, state-municipal
+        const csvCategory = (row['Category'] || '').toLowerCase();
+        
+        // Map CSV display categories to internal keys
+        if (csvCategory.includes('treasury')) return 'treasury';
+        if (csvCategory.includes('tax-exempt')) return 'municipal';
+        if (csvCategory.includes('state-specific') || csvCategory.includes('state municipal')) return 'state-municipal';
+        if (csvCategory.includes('taxable')) return 'taxable';
+        
+        // Fallback to fund name analysis if Category column is missing/unclear
         const name = (row['FundName'] || '').toLowerCase();
-        
-        // Return keys that match TAX_TREATMENT in tax-calculator.js
         if (name.includes('treasury')) return 'treasury';
-        
         if (name.includes('tax-exempt') || name.includes('municipal')) {
             if (name.includes('california') || name.includes('new york')) {
                 return 'state-municipal';
             }
             return 'municipal';
         }
-    
+        
         return 'taxable';
     }
 
@@ -169,7 +182,7 @@ const App = (() => {
         elements.recommendationCard.classList.remove('hidden');
     }
 
-function displayResultsTable() {
+    function displayResultsTable() {
         // Map keys to display names for the UI
         const categoryLabels = {
             'taxable': 'Taxable Money Funds',
@@ -199,25 +212,6 @@ function displayResultsTable() {
         });
         elements.tableWrapper.classList.remove('hidden');
     }
-    // function displayResultsTable() {
-    //     elements.resultsTbody.innerHTML = '';
-    //     state.calculatedResults.forEach((res, i) => {
-    //         const row = document.createElement('tr');
-    //         if (i === 0) row.classList.add('top-result');
-    //         row.innerHTML = `
-    //             <td>${res.fundName}</td>
-    //             <td>${res.symbol}</td>
-    //             <td><span class="category-badge">${res.category}</span></td>
-    //             <td>${TaxCalculator.formatPercent(res.grossYield)}</td>
-    //             <td>${TaxCalculator.formatPercent(res.expenseRatio)}</td>
-    //             <td>${TaxCalculator.formatPercent(res.netYield)}</td>
-    //             <td><strong>${TaxCalculator.formatPercent(res.taxEquivalentYield)}</strong></td>
-    //             <td>${TaxCalculator.formatCurrency(res.annualReturn)}</td>
-    //         `;
-    //         elements.resultsTbody.appendChild(row);
-    //     });
-    //     elements.tableWrapper.classList.remove('hidden');
-    // }
 
     async function handleProfileSubmit(e) {
         e.preventDefault();
@@ -245,9 +239,6 @@ function displayResultsTable() {
         document.getElementById('combined-rate').textContent = TaxCalculator.formatPercent(comb * 100);
     }
 
-    /**
-     * Corrected and Cleaned updateChart function
-     */
     async function updateChart() {
         try {
             const days = elements.dateRangeSelect ? parseInt(elements.dateRangeSelect.value) : 30;
@@ -275,6 +266,7 @@ function displayResultsTable() {
         elements.refreshBtn.disabled = true;
         await loadFundsData();
         calculateAndDisplay();
+        await updateChart();
         elements.refreshBtn.disabled = false;
     }
 
@@ -308,11 +300,12 @@ function displayResultsTable() {
         elements.lastUpdated.textContent = new Date().toLocaleString();
     }
 
-    // document.addEventListener('DOMContentLoaded', init);
-    // To this (prevents the event from capturing the return value of the async init):
     document.addEventListener('DOMContentLoaded', () => {
         init().catch(err => console.error("Initialization failed:", err));
     });
 
-    return { refreshData: handleRefresh };
+    return { 
+        refreshData: handleRefresh,
+        categorizeFund: categorizeFund
+    };
 })();

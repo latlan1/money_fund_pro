@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Market Fund Optimizer - Debug Mode</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f7fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .alert { padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid; }
+        .alert-info { background: #e7f3ff; border-color: #0066cc; color: #004085; }
+        .alert-danger { background: #ffe7e7; border-color: #cc0000; color: #850000; }
+        .alert-success { background: #e7ffe7; border-color: #00cc00; color: #008500; }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+        pre { background: #2c3e50; color: #fff; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; }
+        button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #5568d3; }
+        .chart-container { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        canvas { max-height: 400px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Money Market Fund Optimizer - Debug Mode</h1>
+        
+        <div class="alert alert-info">
+            <strong>Debug Console:</strong> Check below for detailed logs showing what's happening with your CSV files and chart.
+        </div>
+
+        <div id="status-container"></div>
+
+        <button onclick="testLoadFiles()">Test Load All CSV Files</button>
+        
+        <div class="chart-container">
+            <h2>Historical Yield Trends</h2>
+            <canvas id="yield-chart"></canvas>
+        </div>
+
+        <div id="log-container">
+            <h3>Console Log:</h3>
+            <pre id="log-output"></pre>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Custom console logger to display in page
+        const logOutput = document.getElementById('log-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToLog(type, ...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            logOutput.textContent += `[${type}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog('LOG', ...args);
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog('ERROR', ...args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog('WARN', ...args);
+        };
+
+        // CSV Parser
+        function parseCSV(text) {
+            if (!text || text.trim() === '') return [];
+            const lines = text.split(/\r?\n/);
+            if (lines.length < 2) return [];
+            
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const results = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                results.push(row);
+            }
+            
+            return results;
+        }
+
+        // Categorize fund
+        function categorizeFund(row) {
+            const name = (row['FundName'] || '').toLowerCase();
+            if (name.includes('treasury')) return 'Treasury Money Funds';
+            if (name.includes('tax-exempt') || name.includes('municipal')) {
+                if (name.includes('california') || name.includes('new york')) {
+                    return 'State-Specific';
+                }
+                return 'Tax-Exempt Money Funds';
+            }
+            return 'Taxable Money Funds';
+        }
+
+        // Chart Handler
+        let yieldChart = null;
+        const CATEGORY_COLORS = {
+            'Taxable Money Funds': { border: 'rgba(0, 102, 204, 1)', background: 'rgba(0, 102, 204, 0.1)' },
+            'Treasury Money Funds': { border: 'rgba(40, 167, 69, 1)', background: 'rgba(40, 167, 69, 0.1)' },
+            'Tax-Exempt Money Funds': { border: 'rgba(255, 159, 64, 1)', background: 'rgba(255, 159, 64, 0.1)' },
+            'State-Specific': { border: 'rgba(153, 102, 255, 1)', background: 'rgba(153, 102, 255, 0.1)' }
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('yield-chart');
+            if (!ctx) {
+                console.error('Canvas not found');
+                return;
+            }
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js not loaded');
+                return;
+            }
+
+            if (yieldChart) yieldChart.destroy();
+
+            yieldChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            ticks: { callback: (v) => v.toFixed(2) + '%' }
+                        }
+                    }
+                }
+            });
+            console.log('✓ Chart initialized');
+        }
+
+        async function testLoadFiles() {
+            console.log('\n=== TESTING CSV FILE LOADING ===\n');
+            
+            const csvFiles = [
+                { filename: 'schwab_money_funds_12-22-2025.csv', date: '2025-12-22' },
+                { filename: 'schwab_money_funds_12-26-2025.csv', date: '2025-12-26' },
+                { filename: 'schwab_money_funds_12-31-2025.csv', date: '2025-12-31' }
+            ];
+
+            const allData = [];
+            const statusContainer = document.getElementById('status-container');
+            statusContainer.innerHTML = '';
+
+            for (const fileInfo of csvFiles) {
+                try {
+                    console.log(`Attempting to fetch: ${fileInfo.filename}`);
+                    const response = await fetch(fileInfo.filename + '?cb=' + Date.now());
+                    
+                    if (!response.ok) {
+                        const msg = `❌ Failed to load ${fileInfo.filename} (Status: ${response.status})`;
+                        console.error(msg);
+                        statusContainer.innerHTML += `<div class="alert alert-danger">${msg}</div>`;
+                        continue;
+                    }
+                    
+                    const text = await response.text();
+                    console.log(`✓ Fetched ${fileInfo.filename}, length: ${text.length} bytes`);
+                    
+                    const rows = parseCSV(text);
+                    console.log(`✓ Parsed ${rows.length} rows from ${fileInfo.filename}`);
+                    
+                    if (rows.length > 0) {
+                        console.log('Sample row:', rows[0]);
+                    }
+                    
+                    rows.forEach(row => {
+                        const category = categorizeFund(row);
+                        allData.push({
+                            category: category,
+                            fundName: row['FundName'],
+                            date: fileInfo.date,
+                            netYield: parseFloat((row['7DayYieldWithWaivers'] || '0').replace('%', ''))
+                        });
+                    });
+                    
+                    const msg = `✓ Successfully loaded ${fileInfo.filename}: ${rows.length} funds`;
+                    console.log(msg);
+                    statusContainer.innerHTML += `<div class="alert alert-success">${msg}</div>`;
+                    
+                } catch (error) {
+                    const msg = `❌ Error loading ${fileInfo.filename}: ${error.message}`;
+                    console.error(msg, error);
+                    statusContainer.innerHTML += `<div class="alert alert-danger">${msg}</div>`;
+                }
+            }
+            
+            console.log(`\n=== SUMMARY ===`);
+            console.log(`Total data points: ${allData.length}`);
+            const uniqueDates = [...new Set(allData.map(d => d.date))];
+            console.log(`Unique dates: ${uniqueDates.join(', ')}`);
+            const uniqueCategories = [...new Set(allData.map(d => d.category))];
+            console.log(`Unique categories: ${uniqueCategories.join(', ')}`);
+            
+            if (allData.length > 0) {
+                console.log('\n=== UPDATING CHART ===');
+                updateChart(allData);
+            } else {
+                console.error('No data loaded - cannot update chart');
+            }
+        }
+
+        function updateChart(historicalData) {
+            if (!yieldChart || !historicalData.length) {
+                console.error('Cannot update chart');
+                return;
+            }
+
+            const dates = [...new Set(historicalData.map(d => d.date))].sort();
+            const categories = [...new Set(historicalData.map(d => d.category))];
+            
+            console.log(`Building datasets for ${categories.length} categories across ${dates.length} dates`);
+
+            const datasets = categories.map(category => {
+                const colors = CATEGORY_COLORS[category] || { border: '#666', background: 'rgba(0,0,0,0.1)' };
+                
+                const dataPoints = dates.map(date => {
+                    const entries = historicalData.filter(d => d.category === category && d.date === date);
+                    if (entries.length === 0) return null;
+                    const sum = entries.reduce((acc, curr) => acc + curr.netYield, 0);
+                    return sum / entries.length;
+                });
+
+                console.log(`${category}: [${dataPoints.map(v => v ? v.toFixed(2) : 'null').join(', ')}]`);
+
+                return {
+                    label: category,
+                    data: dataPoints,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 6
+                };
+            });
+
+            yieldChart.data.labels = dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            yieldChart.data.datasets = datasets;
+            yieldChart.update();
+            console.log('✓ Chart updated successfully');
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('=== PAGE LOADED ===');
+            console.log('Initializing chart...');
+            initChart();
+            console.log('\nClick the button above to test loading CSV files');
+        });
+    </script>
+</body>
+</html>
