@@ -196,6 +196,10 @@ const App = (() => {
             const row = document.createElement('tr');
             if (i === 0) row.classList.add('top-result');
             
+            // Make row clickable
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', () => showMathExplanation(res));
+            
             const friendlyCategory = categoryLabels[res.category] || res.category;
 
             row.innerHTML = `
@@ -298,6 +302,129 @@ const App = (() => {
 
     function updateLastUpdated() {
         elements.lastUpdated.textContent = new Date().toLocaleString();
+    }
+
+    function showMathExplanation(fund) {
+        const { category, grossYield, expenseRatio, netYield, taxEquivalentYield, effectiveTaxRate, federalRate, stateRate } = fund;
+        
+        // Map internal category to display name
+        const categoryLabels = {
+            'taxable': 'Taxable Money Funds',
+            'treasury': 'Treasury Money Funds',
+            'municipal': 'Tax-Exempt Money Funds',
+            'state-municipal': 'State-Specific'
+        };
+        const categoryName = categoryLabels[category] || category;
+        
+        // Build detailed explanation
+        let explanation = `
+<h3>${fund.fundName} (${fund.symbol})</h3>
+<h4>Category: ${categoryName}</h4>
+
+<div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+    <h4>Step 1: Calculate Net Yield</h4>
+    <p>Net Yield = Gross Yield - Expense Ratio</p>
+    <p><strong>${netYield.toFixed(2)}% = ${grossYield.toFixed(2)}% - ${expenseRatio.toFixed(2)}%</strong></p>
+</div>
+
+<div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+    <h4>Step 2: Your Tax Rates</h4>
+    <p>Federal Marginal Rate: <strong>${(federalRate * 100).toFixed(2)}%</strong></p>
+    <p>State Marginal Rate: <strong>${(stateRate * 100).toFixed(2)}%</strong></p>
+    <p>Effective Combined Rate: <strong>${(effectiveTaxRate * 100).toFixed(2)}%</strong></p>
+</div>
+
+<div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+    <h4>Step 3: Calculate Tax-Equivalent Yield</h4>`;
+
+        if (category === 'taxable') {
+            explanation += `
+    <p>This is a fully taxable fund, so:</p>
+    <p><strong>Tax-Equivalent Yield = Net Yield = ${taxEquivalentYield.toFixed(2)}%</strong></p>
+    <p>You would pay taxes on ${netYield.toFixed(2)}%, leaving you with less after-tax.</p>`;
+        } else {
+            explanation += `
+    <p>This fund has tax advantages, so we calculate what a taxable fund would need to yield:</p>
+    <p>Formula: TEY = Net Yield ÷ (1 - Tax Rate)</p>
+    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ (1 - ${(effectiveTaxRate * 100).toFixed(2)}%)</strong></p>
+    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ ${((1 - effectiveTaxRate) * 100).toFixed(2)}%</strong></p>`;
+        }
+
+        explanation += `
+</div>
+
+<div style="background: #e7f3ff; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+    <h4>What This Means</h4>
+    <p>A taxable investment would need to yield <strong>${taxEquivalentYield.toFixed(2)}%</strong> to match this fund's after-tax return of <strong>${netYield.toFixed(2)}%</strong>.</p>
+    <p>On a $10,000 investment, you'd earn approximately <strong>${TaxCalculator.formatCurrency(fund.annualReturn)}</strong> per year after taxes.</p>
+</div>
+        `;
+
+        // Create or update modal
+        let modal = document.getElementById('math-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'math-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 20px;
+            `;
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                max-width: 700px;
+                max-height: 90vh;
+                overflow-y: auto;
+                position: relative;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            `;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #666;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            closeBtn.onmouseover = () => closeBtn.style.background = '#f0f0f0';
+            closeBtn.onmouseout = () => closeBtn.style.background = 'none';
+            closeBtn.onclick = () => modal.remove();
+            
+            modalContent.innerHTML = `<div id="modal-body"></div>`;
+            modalContent.insertBefore(closeBtn, modalContent.firstChild);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Close on outside click
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+        
+        document.getElementById('modal-body').innerHTML = explanation;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

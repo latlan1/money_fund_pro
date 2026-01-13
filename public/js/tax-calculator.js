@@ -123,9 +123,14 @@ const TaxCalculator = (() => {
         }
         
         if (treatment.stateTaxable) {
-            // State taxes are deductible from federal taxes (simplified)
-            // Effective state rate = state rate * (1 - federal rate)
-            effectiveRate += stateRate * (1 - federalRate);
+            // Taxable funds: deduct state tax by federal rate
+            // Treasury funds: no state tax
+            // Municipal funds: state tax applies in full (no federal deduct)
+            // State-municipal: no state tax
+            const statePortion = treatment.federalTaxable
+                ? stateRate * (1 - federalRate) // taxable funds
+                : stateRate; // municipal (federal-free) still pay full state unless state-specific
+            effectiveRate += statePortion;
         }
         
         return effectiveRate;
