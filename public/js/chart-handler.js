@@ -3,179 +3,259 @@
  * Manages Chart.js visualization for category-level averages
  */
 const ChartHandler = (() => {
-    let yieldChart = null;
-    
-    // Updated colors to match categories exactly
-    const CATEGORY_COLORS = {
-        'Taxable Money Funds': { border: 'rgba(0, 102, 204, 1)', background: 'rgba(0, 102, 204, 0.1)' },
-        'Treasury Money Funds': { border: 'rgba(40, 167, 69, 1)', background: 'rgba(40, 167, 69, 0.1)' },
-        'Tax-Exempt Money Funds': { border: 'rgba(255, 159, 64, 1)', background: 'rgba(255, 159, 64, 0.1)' },
-        'State-Specific': { border: 'rgba(153, 102, 255, 1)', background: 'rgba(153, 102, 255, 0.1)' }
-    };
+  let yieldChart = null;
 
-    function initChart(canvasId) {
-        console.log("ChartHandler.initChart called for:", canvasId);
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.error("Canvas element not found:", canvasId);
-            return null;
-        }
-        if (typeof Chart === 'undefined') {
-            console.error("Chart.js not loaded");
-            return null;
-        }
+  // Colors matching the Fund Categories legend in HTML
+  const CATEGORY_COLORS = {
+    "Taxable Money Funds": {
+      border: "#0066cc",
+      background: "rgba(0, 102, 204, 0.1)",
+    },
+    "Treasury Money Funds": {
+      border: "#28a745",
+      background: "rgba(40, 167, 69, 0.1)",
+    },
+    "Tax-Exempt Money Funds": {
+      border: "#ffc107",
+      background: "rgba(255, 193, 7, 0.1)",
+    },
+    "State-Specific": {
+      border: "#17a2b8",
+      background: "rgba(23, 162, 184, 0.1)",
+    },
+    "Sweep Money Fund": {
+      border: "#6c757d",
+      background: "rgba(108, 117, 125, 0.1)",
+    },
+    "Money Market ETF": {
+      border: "#6f42c1",
+      background: "rgba(111, 66, 193, 0.1)",
+    },
+  };
 
-        if (yieldChart) {
-            yieldChart.destroy();
-            console.log("Previous chart destroyed");
-        }
-
-        yieldChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: [], datasets: [] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: true, position: 'top' },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`
-                        }
-                    }
-                },
-                scales: {
-                    y: { 
-                        beginAtZero: false,
-                        ticks: { callback: (v) => v.toFixed(2) + '%' },
-                        title: { display: true, text: 'Average 7-Day Yield' }
-                    }
-                }
-            }
-        });
-        console.log("Chart initialized successfully");
-        return yieldChart;
+  function initChart(canvasId) {
+    console.log("ChartHandler.initChart called for:", canvasId);
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) {
+      console.error("Canvas element not found:", canvasId);
+      return null;
+    }
+    if (typeof Chart === "undefined") {
+      console.error("Chart.js not loaded");
+      return null;
     }
 
-    async function fetchHistoricalData(days = 30) {
-        console.log("=== ChartHandler.fetchHistoricalData called ===");
-        
-        // Define all CSV files with their corresponding dates
-        const csvFiles = [
-            { filename: 'schwab_money_funds_12-22-2025.csv', date: '2025-12-22' },
-            { filename: 'schwab_money_funds_12-26-2025.csv', date: '2025-12-26' },
-            { filename: 'schwab_money_funds_12-31-2025.csv', date: '2025-12-31' }
-        ];
-
-        const allData = [];
-
-        // Load each CSV file
-        for (const fileInfo of csvFiles) {
-            try {
-                console.log(`Fetching: ${fileInfo.filename}`);
-                const response = await fetch(fileInfo.filename + '?cb=' + Date.now());
-                if (!response.ok) {
-                    console.warn(`Could not load ${fileInfo.filename}, status: ${response.status}`);
-                    continue;
-                }
-                
-                const text = await response.text();
-                const rows = window.parseCSV(text);
-                console.log(`Parsed ${rows.length} rows from ${fileInfo.filename}`);
-                
-                // Map each row to our data structure with the correct date
-                rows.forEach(row => {
-                    // Use the Category column directly from CSV (it already has display names)
-                    const category = row['Category'] || 'Taxable Money Funds';
-                    
-                    allData.push({
-                        category: category,
-                        fundName: row['FundName'],
-                        date: fileInfo.date,
-                        netYield: parseFloat((row['7DayYieldWithWaivers'] || '0').replace('%', ''))
-                    });
-                });
-                
-                console.log(`✓ Loaded ${rows.length} funds from ${fileInfo.filename} for date ${fileInfo.date}`);
-            } catch (error) {
-                console.error(`Error loading ${fileInfo.filename}:`, error);
-            }
-        }
-        
-        console.log(`Total data points loaded: ${allData.length}`);
-        const uniqueDates = [...new Set(allData.map(d => d.date))];
-        console.log(`Unique dates: ${uniqueDates.join(', ')}`);
-        const uniqueCategories = [...new Set(allData.map(d => d.category))];
-        console.log(`Unique categories: ${uniqueCategories.join(', ')}`);
-        
-        return allData;
+    if (yieldChart) {
+      yieldChart.destroy();
+      console.log("Previous chart destroyed");
     }
 
-    function updateChart(historicalData) {
-        console.log("=== ChartHandler.updateChart called ===");
-        console.log(`Received ${historicalData.length} data points`);
-        
-        if (!yieldChart) {
-            console.error("Chart not initialized");
-            return;
-        }
-        
-        if (!historicalData.length) {
-            console.error("No historical data provided");
-            return;
-        }
+    yieldChart = new Chart(ctx, {
+      type: "line",
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }, // Use HTML legend instead
+          tooltip: {
+            callbacks: {
+              label: (ctx) =>
+                `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: { callback: (v) => v.toFixed(2) + "%" },
+            title: { display: true, text: "Average 7-Day Yield" },
+          },
+        },
+      },
+    });
+    console.log("Chart initialized successfully");
+    return yieldChart;
+  }
 
-        // 1. Identify all unique dates and categories
-        const dates = [...new Set(historicalData.map(d => d.date))].sort();
-        const categories = [...new Set(historicalData.map(d => d.category))];
-        
-        console.log(`Building chart with ${categories.length} categories across ${dates.length} dates`);
-        console.log(`Dates: ${dates.join(', ')}`);
-        console.log(`Categories: ${categories.join(', ')}`);
+  async function fetchHistoricalData(days = 0) {
+    console.log(
+      `=== ChartHandler.fetchHistoricalData called (days=${days}) ===`,
+    );
 
-        // 2. Build datasets by calculating the average for each category on each date
-        const datasets = categories.map(category => {
-            const colors = CATEGORY_COLORS[category] || { border: '#666', background: 'rgba(0,0,0,0.1)' };
-            
-            const dataPoints = dates.map(date => {
-                // Filter all funds in this category on this specific date
-                const entries = historicalData.filter(d => d.category === category && d.date === date);
-                if (entries.length === 0) return null;
-                
-                // Calculate Average
-                const sum = entries.reduce((acc, curr) => acc + curr.netYield, 0);
-                const avg = sum / entries.length;
-                return avg;
+    // Fetch manifest of available CSV snapshots from server
+    let csvFiles = [];
+    try {
+      const manifest = await fetch("/api/csv-files?cb=" + Date.now());
+      if (manifest.ok) {
+        csvFiles = await manifest.json();
+      } else {
+        console.warn("Could not load CSV manifest");
+      }
+    } catch (err) {
+      console.warn("CSV manifest fetch failed", err);
+    }
+
+    // Fallback to known filenames if manifest is empty
+    if (!csvFiles.length) {
+      const fallback = [
+        "schwab_money_funds_01-13-2026.csv",
+        "schwab_money_funds_12-31-2025.csv",
+        "schwab_money_funds_12-26-2025.csv",
+        "schwab_money_funds_12-22-2025.csv",
+      ];
+      for (const name of fallback) {
+        try {
+          const res = await fetch(name + "?cb=" + Date.now(), {
+            method: "HEAD",
+          });
+          if (res.ok) {
+            csvFiles.push({
+              name,
+              date: name.replace("schwab_money_funds_", "").replace(".csv", ""),
             });
-
-            console.log(`${category}: ${dataPoints.map(v => v !== null ? v.toFixed(2) : 'null').join(', ')}`);
-
-            return {
-                label: category,
-                data: dataPoints,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
-                fill: false,
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                borderWidth: 2
-            };
-        });
-
-        // 3. Update Chart
-        yieldChart.data.labels = dates.map(d => {
-            const dateObj = new Date(d);
-            return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        });
-        yieldChart.data.datasets = datasets;
-        yieldChart.update();
-        
-        console.log("✓ Chart updated successfully");
-        console.log(`Chart now has ${yieldChart.data.datasets.length} datasets with ${yieldChart.data.labels.length} labels`);
+          }
+        } catch (_) {}
+      }
     }
 
-    return { initChart, updateChart, fetchHistoricalData };
+    if (!csvFiles.length) {
+      console.warn("No CSV files available");
+      return [];
+    }
+
+    // Filter CSV files by date range if days > 0
+    let filteredFiles = csvFiles;
+    if (days > 0) {
+      const now = new Date();
+      const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      console.log(
+        `Filtering to last ${days} days (cutoff: ${cutoffDate.toISOString()})`,
+      );
+
+      filteredFiles = csvFiles.filter((fileInfo) => {
+        const fileDate = DataUtils.parseDateMMDDYYYY(fileInfo.date);
+        return fileDate >= cutoffDate;
+      });
+
+      console.log(
+        `Filtered from ${csvFiles.length} to ${filteredFiles.length} files`,
+      );
+    }
+
+    if (!filteredFiles.length) {
+      console.warn("No CSV files within date range");
+      return [];
+    }
+
+    const allData = [];
+
+    // Load each CSV file
+    for (const fileInfo of filteredFiles) {
+      try {
+        console.log(`Fetching: ${fileInfo.name}`);
+        const response = await fetch(fileInfo.name + "?cb=" + Date.now());
+        if (!response.ok) {
+          console.warn(
+            `Could not load ${fileInfo.name}, status: ${response.status}`,
+          );
+          continue;
+        }
+
+        const text = await response.text();
+        const rows = DataUtils.parseCSV(text);
+        console.log(`Parsed ${rows.length} rows from ${fileInfo.name}`);
+
+        // Use shared utility to transform rows for chart
+        const points = DataUtils.transformRowsForChart(rows, fileInfo.date);
+        allData.push(...points);
+
+        console.log(
+          `✓ Loaded ${rows.length} funds from ${fileInfo.name} for date ${fileInfo.date}`,
+        );
+      } catch (error) {
+        console.error(`Error loading ${fileInfo.name}:`, error);
+      }
+    }
+
+    console.log(`Total data points loaded: ${allData.length}`);
+    const uniqueDates = [...new Set(allData.map((d) => d.date))];
+    console.log(`Unique dates: ${uniqueDates.join(", ")}`);
+    const uniqueCategories = [...new Set(allData.map((d) => d.category))];
+    console.log(`Unique categories: ${uniqueCategories.join(", ")}`);
+
+    return allData;
+  }
+
+  function updateChart(historicalData) {
+    console.log("=== ChartHandler.updateChart called ===");
+    console.log(`Received ${historicalData.length} data points`);
+
+    if (!yieldChart) {
+      console.error("Chart not initialized");
+      return;
+    }
+
+    if (!historicalData.length) {
+      console.error("No historical data provided");
+      return;
+    }
+
+    // Use shared utility for aggregating chart data
+    const aggregated = DataUtils.aggregateChartData(historicalData);
+    const { dates, categoryAverages } = aggregated;
+    const categories = Object.keys(categoryAverages);
+
+    console.log(
+      `Building chart with ${categories.length} categories across ${dates.length} dates`,
+    );
+    console.log(`Dates: ${dates.join(", ")}`);
+    console.log(`Categories: ${categories.join(", ")}`);
+
+    // 2. Build datasets from aggregated data
+    const datasets = categories.map((category) => {
+      const colors = CATEGORY_COLORS[category] || {
+        border: "#666",
+        background: "rgba(0,0,0,0.1)",
+      };
+
+      const dataPoints = categoryAverages[category];
+
+      console.log(
+        `${category}: ${dataPoints.map((v) => (v !== null ? v.toFixed(2) : "null")).join(", ")}`,
+      );
+
+      return {
+        label: category,
+        data: dataPoints,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        fill: false,
+        tension: 0.3,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 2,
+      };
+    });
+
+    // 3. Update Chart
+    yieldChart.data.labels = dates.map((d) => {
+      const dateObj = DataUtils.parseDateMMDDYYYY(d);
+      return dateObj.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    });
+    yieldChart.data.datasets = datasets;
+    yieldChart.update();
+
+    console.log("✓ Chart updated successfully");
+    console.log(
+      `Chart now has ${yieldChart.data.datasets.length} datasets with ${yieldChart.data.labels.length} labels`,
+    );
+  }
+
+  return { initChart, updateChart, fetchHistoricalData };
 })();
 
 window.ChartHandler = ChartHandler;

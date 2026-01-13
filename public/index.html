@@ -23,53 +23,8 @@
       </div>
     </header>
 
-    <!-- Favicon Options -->
-    <section class="section" id="favicon-options">
-      <div class="container">
-        <h2 class="section__title">Favicon Options</h2>
-        <p class="section__description">
-          Preview the two tab icons and pick your favorite.
-        </p>
-        <div class="info-cards">
-          <div class="info-card">
-            <img
-              src="assets/favicon-green-dollar.png"
-              alt="Green dollar favicon"
-              width="72"
-              height="72"
-              style="
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-                margin-bottom: 12px;
-              "
-            />
-            <h3 class="info-card__title">Green Dollar Icon</h3>
-            <p class="info-card__text">
-              Solid green badge with white dollar mark.
-            </p>
-          </div>
-          <div class="info-card">
-            <img
-              src="assets/favicon-coin-gradient.png"
-              alt="Gradient coin favicon"
-              width="72"
-              height="72"
-              style="
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-                margin-bottom: 12px;
-              "
-            />
-            <h3 class="info-card__title">Gradient Coin Icon</h3>
-            <p class="info-card__text">
-              Gold gradient coin ring with white dollar.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Main Content -->
+
     <main class="main container">
       <!-- Tax Profile Section -->
       <section class="section tax-profile" id="tax-profile">
@@ -223,50 +178,57 @@
 
         <!-- Results Table -->
         <div class="table-wrapper hidden" id="table-wrapper">
-          <table class="results-table" id="results-table">
-            <thead>
-              <tr>
-                <th class="sortable" data-column="fundName">
-                  Fund Name
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th class="sortable" data-column="symbol">
-                  Ticker
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th class="sortable" data-column="category">
-                  Category
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th class="sortable" data-column="grossYield">
-                  7-Day Yield
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th class="sortable" data-column="expenseRatio">
-                  Expense Ratio
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th class="sortable" data-column="netYield">
-                  Net Yield
-                  <span class="sort-icon">⬍</span>
-                </th>
-                <th
-                  class="sortable active desc"
-                  data-column="taxEquivalentYield"
-                >
-                  Tax-Equiv Yield
-                  <span class="sort-icon">▼</span>
-                </th>
-                <th class="sortable" data-column="annualReturn">
-                  Annual Return ($10k)
-                  <span class="sort-icon">⬍</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody id="results-tbody">
-              <!-- Populated by JavaScript -->
-            </tbody>
-          </table>
+          <div class="table-scroll-container" id="table-scroll-container">
+            <table class="results-table" id="results-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-column="fundName">
+                    Fund Name
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th class="sortable" data-column="symbol">
+                    Ticker
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th class="sortable" data-column="category">
+                    Category
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th class="sortable" data-column="grossYield">
+                    7-Day Yield
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th class="sortable" data-column="expenseRatio">
+                    Expense Ratio
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th class="sortable" data-column="netYield">
+                    Net Yield
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                  <th
+                    class="sortable active desc"
+                    data-column="taxEquivalentYield"
+                  >
+                    Tax-Equiv Yield
+                    <span class="sort-icon">▼</span>
+                  </th>
+                  <th class="sortable" data-column="annualReturn">
+                    Annual Return ($10k)
+                    <span class="sort-icon">⬍</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="results-tbody">
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="scroll-indicator" id="scroll-indicator">
+            <span class="scroll-indicator__arrow">↓</span>
+            Scroll for more funds
+            <span class="scroll-indicator__arrow">↓</span>
+          </div>
 
           <div class="table-footer">
             <p class="table-footer__text">
@@ -307,10 +269,11 @@
             <label for="date-range" class="form-label">Time Period:</label>
             <select id="date-range" class="form-select">
               <option value="7">Last 7 Days</option>
-              <option value="30" selected>Last 30 Days</option>
+              <option value="30">Last 30 Days</option>
               <option value="90">Last 90 Days</option>
               <option value="180">Last 6 Months</option>
               <option value="365">Last Year</option>
+              <option value="0" selected>All Time</option>
             </select>
           </div>
         </div>
@@ -337,6 +300,14 @@
             <li>
               <span class="legend-color" style="background: #17a2b8"></span>
               State Municipal - Both tax-free (residents only)
+            </li>
+            <li>
+              <span class="legend-color" style="background: #6c757d"></span>
+              Sweep - Automatic cash sweep
+            </li>
+            <li>
+              <span class="legend-color" style="background: #6f42c1"></span>
+              ETF - Exchange-traded fund
             </li>
           </ul>
         </div>
@@ -411,9 +382,10 @@
 
     <!-- Scripts loaded at end of body in correct order -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="js/csv-loader.js"></script>
-    <script src="js/tax-calculator.js"></script>
-    <script src="js/chart-handler.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/data-utils.js?v=2"></script>
+    <script src="js/csv-loader.js?v=2"></script>
+    <script src="js/tax-calculator.js?v=2"></script>
+    <script src="js/chart-handler.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
   </body>
 </html>

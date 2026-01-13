@@ -27,17 +27,20 @@ A web application that helps optimize cash allocation by comparing tax-equivalen
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd money_fund_pro
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -47,26 +50,31 @@ npm run dev
 ## Usage
 
 ### 1. Set Your Tax Profile
+
 - Enter your annual income
 - Select filing status (Single, Married, Head of Household)
 - Choose your state of residence
 - Default profile: $200,000, Single, Missouri
 
 ### 2. View Fund Comparison
+
 - Automatically loads current Schwab money market fund data
 - View sortable table with all fund metrics
 - Top recommendation highlighted in green
 
 ### 3. Analyze Historical Trends
+
 - Select funds to compare over time
 - Choose date range for analysis
 - Interactive charts show yield movements
 
 ### 4. Refresh Data
+
 - Click "Refresh Data" to fetch latest yields from Schwab (https://www.schwabassetmanagement.com/products/money-fund-yields or https://www.schwab.com/money-market-funds)
 - Data automatically cached for 6 hours
 
 ### 5. Export Results
+
 - Export comparison table to CSV or JSON
 - Save for your records or tax planning
 
@@ -75,6 +83,7 @@ npm run dev
 **Tax-Equivalent Yield (TEY)** = The yield a taxable investment would need to equal the after-tax return of a tax-advantaged investment.
 
 ### Calculation Formula
+
 ```
 TEY = Net Yield / (1 - Effective Tax Rate)
 
@@ -84,7 +93,9 @@ Where:
 ```
 
 ### Example
+
 If a municipal bond yields 3.5% (tax-free) and your combined tax rate is 35%:
+
 - TEY = 3.5% / (1 - 0.35) = 5.38%
 - A taxable fund would need to yield 5.38% to match the after-tax return
 
@@ -101,24 +112,31 @@ money_fund_pro/
 │   ├── index.html             # Main SPA
 │   ├── css/
 │   │   └── styles.css         # Application styles
-│   └── js/
-│       ├── app.js             # Main application logic
-│       ├── tax-calculator.js  # Tax calculation module
-│       └── chart-handler.js   # Chart visualization
+│   ├── js/
+│   │   ├── app.js             # Main application logic
+│   │   ├── tax-calculator.js  # Tax calculation module
+│   │   └── chart-handler.js   # Chart visualization
+│   └── assets/                # Favicons and static assets
+│       ├── favicon-green-dollar.png   # Default favicon
+│       └── favicon-coin-gradient.png  # Alternate option (kept for swap)
 ├── src/                        # Backend modules
 │   ├── scraper.js             # Web scraping
-│   ├── database.js            # SQLite operations
 │   └── tax-engine.js          # Tax calculations
-└── data/
-    └── fund_data.db           # SQLite database (auto-created)
+├── data/                       # Historical data snapshots
+│   └── schwab_money_funds_*.csv
+└── scripts/                    # Scraping helpers and CSV snapshots
+    ├── scrape_money_market_funds.py
+    └── schwab_money_funds_*.csv
 ```
 
 ## API Endpoints
 
 ### GET /api/funds
+
 Returns current money market fund data with yields and expense ratios.
 
 **Response:**
+
 ```json
 [
   {
@@ -127,16 +145,18 @@ Returns current money market fund data with yields and expense ratios.
     "category": "taxable",
     "grossYield": 4.84,
     "expenseRatio": 0.34,
-    "netYield": 4.50,
+    "netYield": 4.5,
     "lastUpdated": "2024-12-14T19:30:00Z"
   }
 ]
 ```
 
 ### POST /api/calculate
+
 Calculate tax-equivalent yields based on user profile.
 
 **Request Body:**
+
 ```json
 {
   "income": 200000,
@@ -147,13 +167,16 @@ Calculate tax-equivalent yields based on user profile.
 ```
 
 ### GET /api/history/:fundName
+
 Get historical yield data for a specific fund.
 
 **Query Parameters:**
+
 - `startDate` (optional): ISO date string
 - `endDate` (optional): ISO date string
 
 ### POST /api/refresh
+
 Trigger fresh scrape of Schwab data (rate-limited).
 
 ## Development
@@ -162,10 +185,48 @@ Trigger fresh scrape of Schwab data (rate-limited).
 
 - `npm run dev` - Start development server with hot reload
 - `npm start` - Start production server
-- `npm test` - Run test suite
+- `npm test` - Run unit tests with coverage
+- `npm run test:watch` - Run tests in watch mode during development
+- `npm run test:ci` - Run tests for CI/CD pipelines
 - `npm run scrape` - Manually trigger data scrape
-- `npm run db:init` - Initialize database
-- `npm run db:seed` - Seed with sample data
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests with coverage report
+npm test
+
+# Run tests in watch mode (re-runs on file changes)
+npm run test:watch
+
+# Run tests for CI/CD (no watch, coverage required)
+npm run test:ci
+```
+
+### Test Coverage
+
+Tests cover critical data loading functionality:
+
+- **CSV Parsing** - Parsing quoted fields, commas, escaped quotes
+- **Fund Filtering** - Retail funds with no minimum investment
+- **Fund Categorization** - Taxable, Treasury, Municipal, State-Specific
+- **Date Handling** - MM-DD-YYYY format parsing and sorting
+- **Chart Data** - Aggregation and average calculations
+- **Data Integrity** - Valid yields, expense ratios, categories, tickers
+
+### Pre-commit Hook
+
+Tests run automatically before every commit via Husky. If tests fail, the commit is blocked.
+
+```bash
+# Tests run automatically on commit
+git commit -m "Your message"
+# If tests fail, commit is rejected
+```
 
 ### Environment Variables
 
@@ -182,6 +243,7 @@ LOG_LEVEL=info
 ## Tax Rates (2024/2025)
 
 ### Federal Tax Brackets (Single Filers)
+
 - 10%: $0 - $11,600
 - 12%: $11,601 - $47,150
 - 22%: $47,151 - $100,525
@@ -191,10 +253,11 @@ LOG_LEVEL=info
 - 37%: $609,351+
 
 ### State Tax Rates (Top Marginal)
+
 - Missouri: 5.3%
 - California: 13.3%
 - New York: 10.9%
-- *(More states available in app)*
+- _(More states available in app)_
 
 ## Important Disclaimers
 
@@ -211,6 +274,7 @@ LOG_LEVEL=info
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Development Guidelines
+
 1. Follow existing code style
 2. Write tests for new features
 3. Update documentation
@@ -219,15 +283,18 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 ## Troubleshooting
 
 ### Data not loading
+
 - Check if server is running on port 3000
 - Verify Schwab website is accessible
 - Check console for error messages
 
 ### Database errors
+
 - Ensure `data/` directory exists with write permissions
 - Try running `npm run db:init` to reinitialize
 
 ### Scraping issues
+
 - Schwab website structure may change
 - Check `src/scraper.js` for updates needed
 - Consider using cached data temporarily
@@ -245,6 +312,7 @@ MIT License - See [LICENSE](LICENSE) file for details
 ## Support
 
 For issues, questions, or suggestions:
+
 - Open an issue on GitHub
 - Email: support@example.com
 - Documentation: See [DESIGN.md](DESIGN.md) for technical details
@@ -252,12 +320,14 @@ For issues, questions, or suggestions:
 ## Roadmap
 
 ### Version 1.1
+
 - [ ] Additional brokerage support (Vanguard, Fidelity)
 - [ ] User authentication and saved profiles
 - [ ] Email alerts when optimal fund changes
 - [ ] Mobile app version
 
 ### Version 2.0
+
 - [ ] Portfolio allocation recommendations
 - [ ] Tax-loss harvesting suggestions
 - [ ] Real-time yield updates
