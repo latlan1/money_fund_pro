@@ -191,6 +191,7 @@ const TaxCalculator = (() => {
       fundName: fund.fundName,
       symbol: fund.symbol,
       category: fund.category,
+      fundCategory: fund.fundCategory,
       grossYield: fund.grossYield,
       expenseRatio: fund.expenseRatio,
       netYield: netYield,

@@ -1,35 +1,27 @@
 /**
  * Chart Handler Module
- * Manages Chart.js visualization for category-level averages
+ * Manages Chart.js visualization for Fund Category-level averages
  */
 const ChartHandler = (() => {
   let yieldChart = null;
 
-  // Colors matching the Fund Categories legend in HTML
+  // Colors matching the Fund Categories (tax treatment)
   const CATEGORY_COLORS = {
-    "Taxable Money Funds": {
+    "Taxable - Subject to all taxes": {
       border: "#0066cc",
       background: "rgba(0, 102, 204, 0.1)",
     },
-    "Treasury Money Funds": {
+    "Treasury - State tax-free": {
       border: "#28a745",
       background: "rgba(40, 167, 69, 0.1)",
     },
-    "Tax-Exempt Money Funds": {
+    "Municipal - Federal tax-free": {
       border: "#ffc107",
       background: "rgba(255, 193, 7, 0.1)",
     },
-    "State-Specific": {
+    "State Municipal - Both tax-free (residents only)": {
       border: "#17a2b8",
       background: "rgba(23, 162, 184, 0.1)",
-    },
-    "Sweep Money Fund": {
-      border: "#6c757d",
-      background: "rgba(108, 117, 125, 0.1)",
-    },
-    "Money Market ETF": {
-      border: "#6f42c1",
-      background: "rgba(111, 66, 193, 0.1)",
     },
   };
 

@@ -203,8 +203,8 @@ const App = (() => {
   }
 
   function displayResultsTable() {
-    // Map keys to display names for the UI
-    const categoryLabels = {
+    // Map keys to display names for the UI (now used for "Type" column)
+    const typeLabels = {
       taxable: "Taxable Money Funds",
       treasury: "Treasury Money Funds",
       municipal: "Tax-Exempt Money Funds",
@@ -222,12 +222,14 @@ const App = (() => {
       row.style.cursor = "pointer";
       row.addEventListener("click", () => showMathExplanation(res));
 
-      const friendlyCategory = categoryLabels[res.category] || res.category;
+      const friendlyType = typeLabels[res.category] || res.category;
 
       row.innerHTML = `
+                <td class="row-number">${i + 1}</td>
                 <td>${res.fundName}</td>
                 <td>${res.symbol}</td>
-                <td><span class="category-badge">${friendlyCategory}</span></td>
+                <td><span class="category-badge">${friendlyType}</span></td>
+                <td><span class="fund-category-badge">${res.fundCategory || "Taxable - Subject to all taxes"}</span></td>
                 <td>${TaxCalculator.formatPercent(res.grossYield)}</td>
                 <td>${TaxCalculator.formatPercent(res.expenseRatio)}</td>
                 <td>${TaxCalculator.formatPercent(res.netYield)}</td>

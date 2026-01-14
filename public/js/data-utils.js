@@ -144,15 +144,61 @@ function categorizeFund(row) {
 }
 
 /**
+ * Determine fund category for tax treatment display based on fund name
+ * Maps CSV categories + fund names to user-friendly tax treatment descriptions
+ * @param {string} fundName - The fund name
+ * @param {string} csvCategory - Original CSV category
+ * @returns {string} Tax treatment description
+ */
+function getFundCategory(fundName, csvCategory) {
+  const name = (fundName || "").toLowerCase();
+  const category = (csvCategory || "").toLowerCase();
+
+  // State-specific municipal funds (CA, NY) - both federal and state tax-free for residents
+  if (name.includes("california") || name.includes("new york")) {
+    return "State Municipal - Both tax-free (residents only)";
+  }
+
+  // Tax-Exempt/Municipal funds - federal tax-free
+  if (category.includes("tax-exempt") || name.includes("municipal")) {
+    return "Municipal - Federal tax-free";
+  }
+
+  // Treasury funds - U.S. Treasury or Treasury Obligations
+  // These invest exclusively in US Treasuries and are state tax-free
+  if (name.includes("u.s. treasury") || name.includes("treasury obligations")) {
+    return "Treasury - State tax-free";
+  }
+
+  // Government funds (including sweep and ETF that are government-based)
+  // These invest in repos, agency debt, etc. - fully taxable
+  if (name.includes("government")) {
+    return "Taxable - Subject to all taxes";
+  }
+
+  // Prime funds - fully taxable
+  if (name.includes("prime")) {
+    return "Taxable - Subject to all taxes";
+  }
+
+  // Default - taxable
+  return "Taxable - Subject to all taxes";
+}
+
+/**
  * Transform a single CSV row into a fund object
  * @param {Object} row - CSV row data
  * @returns {Object} Fund object
  */
 function transformRowToFund(row) {
+  const fundName = getField(row, ["Fund Name", "FundName"]);
+  const csvCategory = row["Category"] || "";
   return {
-    fundName: getField(row, ["Fund Name", "FundName"]),
+    fundName: fundName,
     symbol: getField(row, ["Ticker", "Symbol"]),
     category: categorizeFund(row),
+    csvCategory: csvCategory,
+    fundCategory: getFundCategory(fundName, csvCategory),
     grossYield: parsePercent(
       getField(row, ["7-Day Yield (with waivers)", "7DayYieldWithWaivers"]),
     ),
@@ -238,9 +284,11 @@ function transformRowsForChart(rows, dateStr) {
   return rows.map((row) => {
     const yieldStr =
       row["7-Day Yield (with waivers)"] || row["7DayYieldWithWaivers"] || "0";
+    const fundName = row["Fund Name"] || row["FundName"] || "";
+    const csvCategory = row["Category"] || "";
     return {
-      category: row["Category"] || "Taxable Money Funds",
-      fundName: row["Fund Name"] || row["FundName"],
+      category: getFundCategory(fundName, csvCategory),
+      fundName: fundName,
       date: dateStr,
       netYield: parseFloat(yieldStr.replace("%", "")),
     };
@@ -288,6 +336,7 @@ if (typeof module !== "undefined" && module.exports) {
     getField,
     parsePercent,
     categorizeFund,
+    getFundCategory,
     transformRowToFund,
     getAllFunds,
     filterRetailFunds,
@@ -307,6 +356,7 @@ if (typeof window !== "undefined") {
     getField,
     parsePercent,
     categorizeFund,
+    getFundCategory,
     transformRowToFund,
     getAllFunds,
     filterRetailFunds,
