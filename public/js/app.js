@@ -389,6 +389,7 @@ const App = (() => {
     } catch (err) {
       console.warn("Manifest fetch failed, using fallback list", err);
       const fallback = [
+        "schwab_money_funds_01-15-2026.csv",
         "schwab_money_funds_01-13-2026.csv",
         "schwab_money_funds_12-31-2025.csv",
         "schwab_money_funds_12-26-2025.csv",
