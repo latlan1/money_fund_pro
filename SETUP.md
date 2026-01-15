@@ -98,25 +98,30 @@ http://localhost:3000
 
 ```
 money_fund_pro/
-├── public/                 # Frontend files (can be served statically)
+├── public/                 # Frontend files (served statically)
 │   ├── index.html         # Main HTML page
 │   ├── css/
-│   │   └── styles.css     # Application styles
+│   │   └── styles.css     # Application styles (glassmorphism design)
 │   ├── js/
 │   │   ├── app.js         # Main app logic
+│   │   ├── data-utils.js  # CSV parsing & fund categorization
 │   │   ├── tax-calculator.js # Tax calculations
-│   │   └── chart-handler.js  # Chart.js wrapper
-│   └── assets/            # Favicons and static assets
-│       ├── favicon-green-dollar.png   # Default favicon
-│       └── favicon-coin-gradient.png  # Alternate option
-├── src/                    # Backend modules (server/scraper)
+│   │   ├── chart-handler.js  # Chart.js wrapper
+│   │   └── csv-loader.js  # CSV file loading utilities
+│   ├── assets/            # Favicons and static assets
+│   │   ├── favicon-green-dollar.png   # Default favicon
+│   │   └── favicon-coin-gradient.png  # Alternate option
+│   └── schwab_money_funds_*.csv       # Historical CSV snapshots
+├── src/                    # Backend/Node.js modules
+│   ├── data-utils.js      # Shared data utilities (Node.js copy)
 │   ├── tax-engine.js      # Server-side tax calculations
 │   └── scraper.js         # Web scraping logic
-├── data/                   # Historical CSV snapshots (optional)
-├── scripts/                # Scraping/seed helpers and CSV snapshots
+├── tests/                  # Jest test files
+│   └── data-loading.test.js  # Data loading & parsing tests
+├── docs/                   # GitHub Pages deployment
 ├── server.js               # Express server
 ├── package.json            # Dependencies
-├── .env                    # Environment configuration (optional for static)
+├── jest.config.js          # Jest test configuration
 └── README.md               # Documentation
 ```
 
@@ -163,10 +168,13 @@ USE_MOCK_DATA=true    # Use mock data for testing
 
 ### 2. Fund Comparison
 
-- Compare multiple money market funds
+- Compare ALL Schwab money market funds (not just retail)
 - View tax-equivalent yields based on your profile
 - See gross yield, expense ratios, and net yields
+- **Type column**: Original CSV category
+- **Fund Category column**: Tax treatment description
 - Sortable columns for easy comparison
+- Row numbers for easy reference
 
 ### 3. Top Recommendation
 
@@ -177,8 +185,12 @@ USE_MOCK_DATA=true    # Use mock data for testing
 ### 4. Historical Tracking
 
 - View yield trends over time
-- Compare multiple funds
-- Select date ranges (7 days to 1 year)
+- **Aggregated by Fund Category** (4 categories):
+  - Taxable - Subject to all taxes (blue)
+  - Treasury - State tax-free (green)
+  - Municipal - Federal tax-free (yellow)
+  - State Municipal - Both tax-free (cyan)
+- Select date ranges (7 days, 30 days, 90 days, All Time)
 - Interactive charts with Chart.js
 
 ### 5. Data Export
@@ -382,5 +394,5 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: December 2024
+**Version**: 1.1.0
+**Last Updated**: January 2026

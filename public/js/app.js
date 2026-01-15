@@ -79,6 +79,7 @@ const App = (() => {
     elements.fundSelector = document.getElementById("fund-selector");
     elements.dateRangeSelect = document.getElementById("date-range");
     elements.lastUpdated = document.getElementById("last-updated");
+    elements.footerDataDate = document.getElementById("footer-data-date");
     elements.taxSummary = document.getElementById("tax-summary");
   }
 
@@ -345,12 +346,28 @@ const App = (() => {
   }
 
   function updateLastUpdated(dateString) {
+    // dateString is in MM-DD-YYYY format from CSV filename
+    let displayDate;
     if (dateString) {
-      elements.lastUpdated.textContent = new Date(
-        dateString,
-      ).toLocaleDateString();
+      // Parse MM-DD-YYYY and format as readable date
+      const parsed = DataUtils.parseDateMMDDYYYY(dateString);
+      displayDate = parsed.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     } else {
-      elements.lastUpdated.textContent = new Date().toLocaleString();
+      displayDate = new Date().toLocaleString();
+    }
+
+    // Update header "Last updated" element
+    if (elements.lastUpdated) {
+      elements.lastUpdated.textContent = displayDate;
+    }
+
+    // Update footer "Data Updated" element
+    if (elements.footerDataDate) {
+      elements.footerDataDate.textContent = displayDate;
     }
   }
 
