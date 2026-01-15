@@ -132,6 +132,8 @@ money_fund_pro/
 ├── package.json                # Dependencies
 ├── jest.config.js              # Test configuration
 ├── server.js                   # Express backend
+├── scripts/
+│   └── scrape-schwab.js       # CLI scraper (lightweight, no browser)
 ├── public/                     # Frontend files
 │   ├── index.html             # Main SPA
 │   ├── css/
@@ -178,6 +180,22 @@ CSV files are served directly from `/public/` directory:
 - `npm start` - Start production server
 - `npm test` - Run unit tests with coverage
 - `npm run test:watch` - Run tests in watch mode
+- `npm run scrape:cli` - Fetch latest fund data from Schwab
+
+### CLI Scraper
+
+Fetch the latest fund yields from Schwab's website:
+
+```bash
+npm run scrape:cli
+```
+
+This lightweight script:
+
+- Uses only Node.js built-in `https` module (no browser/Puppeteer required)
+- Fetches current 7-day yields for all 17 publicly available funds
+- Saves data to `public/schwab_money_funds_MM-DD-YYYY.csv`
+- Note: SWGXX (Sweep) is no longer on Schwab's public page
 
 ### Testing
 

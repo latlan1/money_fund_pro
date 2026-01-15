@@ -119,6 +119,20 @@ Display sortable table with:
 - `data-utils.js` module handles CSV parsing and fund categorization
 - No database required - static CSV approach
 
+### CLI Scraper Tool
+
+A lightweight Node.js script for fetching current fund data from Schwab:
+
+```bash
+npm run scrape:cli
+```
+
+- Located at `scripts/scrape-schwab.js`
+- Uses only Node.js built-in `https` module (no Puppeteer/browser required)
+- Fetches current 7-day yields from Schwab website
+- Outputs CSV file to `public/schwab_money_funds_MM-DD-YYYY.csv`
+- Finds all 17 publicly available funds (SWGXX Sweep is no longer on public page)
+
 ### Key JavaScript Modules
 
 - `data-utils.js` - CSV parsing, fund categorization, getFundCategory()
