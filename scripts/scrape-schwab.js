@@ -391,35 +391,49 @@ async function main() {
     // Save to file
     const dateStr = getTodayDate();
     const filename = `schwab_money_funds_${dateStr}.csv`;
-    const filepath = path.join(__dirname, "..", "public", filename);
+    const publicDir = path.join(__dirname, "..", "public");
+    const filepath = path.join(publicDir, filename);
 
     fs.writeFileSync(filepath, csv);
     console.log(`\nSaved to: ${filepath}`);
     console.log(`\nTotal funds: ${Object.keys(FUND_METADATA).length}`);
     console.log(`Yields found: ${foundCount}`);
 
-    // Show comparison with previous file if exists
-    const publicDir = path.join(__dirname, "..", "public");
-    const csvFiles = fs
-      .readdirSync(publicDir)
-      .filter(
-        (f) =>
-          f.startsWith("schwab_money_funds_") &&
-          f.endsWith(".csv") &&
-          f !== filename,
-      )
-      .sort()
-      .reverse();
-
-    if (csvFiles.length > 0) {
-      console.log(`\nPrevious data file: ${csvFiles[0]}`);
-    }
+    // Update the CSV manifest file
+    updateManifest(publicDir);
 
     console.log("\nDone!");
   } catch (error) {
     console.error("\nError:", error.message);
     process.exit(1);
   }
+}
+
+/**
+ * Update csv-manifest.json with all available CSV files
+ */
+function updateManifest(publicDir) {
+  const csvFiles = fs
+    .readdirSync(publicDir)
+    .filter((f) => f.startsWith("schwab_money_funds_") && f.endsWith(".csv"))
+    .map((name) => ({
+      name,
+      date: name.replace("schwab_money_funds_", "").replace(".csv", ""),
+    }));
+
+  // Sort by date (newest first) - parse MM-DD-YYYY format
+  csvFiles.sort((a, b) => {
+    const [aMonth, aDay, aYear] = a.date.split("-").map(Number);
+    const [bMonth, bDay, bYear] = b.date.split("-").map(Number);
+    const aDate = new Date(aYear, aMonth - 1, aDay);
+    const bDate = new Date(bYear, bMonth - 1, bDay);
+    return bDate - aDate;
+  });
+
+  const manifestPath = path.join(publicDir, "csv-manifest.json");
+  fs.writeFileSync(manifestPath, JSON.stringify(csvFiles, null, 2) + "\n");
+  console.log(`\nUpdated manifest: ${manifestPath}`);
+  console.log(`Total CSV files in manifest: ${csvFiles.length}`);
 }
 
 main();

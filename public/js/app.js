@@ -379,38 +379,26 @@ const App = (() => {
     elements.refreshBtn.disabled = false;
   }
 
-  // Fetch available CSV files from the server manifest endpoint
+  // Fetch available CSV files from manifest
   async function fetchCsvList() {
-    // Fallback: if manifest not reachable, try to infer newest CSV by hard-coded known files
+    // Try server API first (for local dev), then static manifest (for GitHub Pages)
     try {
       const res = await fetch("/api/csv-files?cb=" + Date.now());
-      if (!res.ok) throw new Error("manifest not available");
-      return await res.json();
-    } catch (err) {
-      console.warn("Manifest fetch failed, using fallback list", err);
-      const fallback = [
-        "schwab_money_funds_01-15-2026.csv",
-        "schwab_money_funds_01-13-2026.csv",
-        "schwab_money_funds_12-31-2025.csv",
-        "schwab_money_funds_12-26-2025.csv",
-        "schwab_money_funds_12-22-2025.csv",
-      ];
-      const existing = [];
-      for (const name of fallback) {
-        try {
-          const res = await fetch(name + "?cb=" + Date.now(), {
-            method: "HEAD",
-          });
-          if (res.ok) {
-            existing.push({
-              name,
-              date: name.replace("schwab_money_funds_", "").replace(".csv", ""),
-            });
-          }
-        } catch (_) {}
+      if (res.ok) {
+        return await res.json();
       }
-      return existing;
-    }
+    } catch (_) {}
+
+    // Fallback to static manifest file (works on GitHub Pages)
+    try {
+      const res = await fetch("csv-manifest.json?cb=" + Date.now());
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (_) {}
+
+    console.warn("Could not load CSV manifest");
+    return [];
   }
 
   function showMathExplanation(fund) {
