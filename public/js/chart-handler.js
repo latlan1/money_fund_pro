@@ -91,6 +91,7 @@ const ChartHandler = (() => {
     // Fallback to known filenames if manifest is empty
     if (!csvFiles.length) {
       const fallback = [
+        "schwab_money_funds_01-15-2026.csv",
         "schwab_money_funds_01-13-2026.csv",
         "schwab_money_funds_12-31-2025.csv",
         "schwab_money_funds_12-26-2025.csv",
