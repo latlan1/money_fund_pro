@@ -214,6 +214,25 @@ const App = (() => {
       etf: "Money Market ETF",
     };
 
+    // Map category keys to CSS class names for Type badges
+    const typeCssClasses = {
+      taxable: "type-taxable",
+      treasury: "type-treasury",
+      municipal: "type-municipal",
+      "state-municipal": "type-state-municipal",
+      sweep: "type-sweep",
+      etf: "type-etf",
+    };
+
+    // Map Fund Category text to CSS class names
+    const fundCategoryCssClasses = {
+      "Taxable - Subject to all taxes": "fund-cat-taxable",
+      "Treasury - State tax-free": "fund-cat-treasury",
+      "Municipal - Federal tax-free": "fund-cat-municipal",
+      "State Municipal - Both tax-free (residents only)":
+        "fund-cat-state-municipal",
+    };
+
     elements.resultsTbody.innerHTML = "";
     state.calculatedResults.forEach((res, i) => {
       const row = document.createElement("tr");
@@ -224,13 +243,17 @@ const App = (() => {
       row.addEventListener("click", () => showMathExplanation(res));
 
       const friendlyType = typeLabels[res.category] || res.category;
+      const typeCssClass = typeCssClasses[res.category] || "type-taxable";
+      const fundCategory = res.fundCategory || "Taxable - Subject to all taxes";
+      const fundCatCssClass =
+        fundCategoryCssClasses[fundCategory] || "fund-cat-taxable";
 
       row.innerHTML = `
                 <td class="row-number">${i + 1}</td>
                 <td>${res.fundName}</td>
                 <td>${res.symbol}</td>
-                <td><span class="category-badge">${friendlyType}</span></td>
-                <td><span class="fund-category-badge">${res.fundCategory || "Taxable - Subject to all taxes"}</span></td>
+                <td><span class="category-badge ${typeCssClass}">${friendlyType}</span></td>
+                <td><span class="fund-category-badge ${fundCatCssClass}">${fundCategory}</span></td>
                 <td>${TaxCalculator.formatPercent(res.grossYield)}</td>
                 <td>${TaxCalculator.formatPercent(res.expenseRatio)}</td>
                 <td>${TaxCalculator.formatPercent(res.netYield)}</td>

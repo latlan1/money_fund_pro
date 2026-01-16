@@ -755,47 +755,67 @@ body {
 
 .fund-category-badge {
   display: inline-block;
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md);
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-/* Category badge colors */
-.category-badge {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--primary-blue);
+/* Type badge colors (category-badge) */
+.type-taxable {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
 }
 
-.category-taxable {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--primary-blue);
+.type-treasury {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
 }
 
-.category-treasury {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-green);
-}
-
-.category-municipal {
+.type-municipal {
   background: rgba(245, 158, 11, 0.15);
   color: #b45309;
 }
 
-.category-state-municipal {
+.type-state-municipal {
+  background: rgba(6, 182, 212, 0.12);
+  color: #0e7490;
+}
+
+.type-sweep {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.type-etf {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+}
+
+/* Fund Category badge colors (tax treatment) */
+.fund-cat-taxable {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.fund-cat-treasury {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.fund-cat-municipal {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.fund-cat-state-municipal {
   background: rgba(6, 182, 212, 0.1);
-  color: var(--accent-cyan);
-}
-
-.category-sweep {
-  background: rgba(100, 116, 139, 0.1);
-  color: var(--text-light);
-}
-
-.category-etf {
-  background: rgba(139, 92, 246, 0.1);
-  color: var(--accent-purple);
+  color: #0e7490;
+  border: 1px solid rgba(6, 182, 212, 0.25);
 }
 
 .table-footer {
