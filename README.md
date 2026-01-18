@@ -262,6 +262,20 @@ Tests run automatically before every commit via Husky.
 - Hard refresh browser (Cmd+Shift+R)
 - Check browser console for errors
 
+### Stopping the local server
+
+To stop the local development server, find and kill the process:
+
+```bash
+# Find the process using port 3000
+lsof -i :3000 | grep LISTEN
+
+# Kill the process by PID (replace <PID> with the actual process ID)
+kill <PID>
+```
+
+Or simply press `Ctrl+C` in the terminal where the server is running.
+
 ### Tests failing
 
 - Run `npm install` to ensure dependencies are current
