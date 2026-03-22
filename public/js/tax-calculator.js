@@ -70,7 +70,7 @@ const TaxCalculator = (() => {
     municipal: {
       federalTaxable: false,
       stateTaxable: true,
-      description: "Federal tax-free, may be state taxable",
+      description: "Federal tax-free, state taxes still apply",
     },
     "state-municipal": {
       federalTaxable: false,
@@ -118,7 +118,7 @@ const TaxCalculator = (() => {
   }
 
   /**
-   * Get effective tax rate for a fund based on category
+   * Get effective tax rate that APPLIES to a fund (for after-tax yield calculation)
    * @param {string} category - Fund category
    * @param {number} federalRate - Federal marginal rate
    * @param {number} stateRate - State marginal rate
@@ -148,6 +148,38 @@ const TaxCalculator = (() => {
   }
 
   /**
+   * Get the tax rate AVOIDED by a tax-advantaged fund (for TEY calculation)
+   * This is the combined rate of taxes that DON'T apply to the fund
+   * @param {string} category - Fund category
+   * @param {number} federalRate - Federal marginal rate
+   * @param {number} stateRate - State marginal rate
+   * @returns {number} Tax rate avoided (decimal)
+   */
+  function getTaxRateAvoided(category, federalRate, stateRate) {
+    const treatment = TAX_TREATMENT[category] || TAX_TREATMENT.taxable;
+
+    let taxAvoided = 0;
+
+    // Add federal rate if federal tax is avoided
+    if (!treatment.federalTaxable) {
+      taxAvoided += federalRate;
+    }
+
+    // Add state rate if state tax is avoided
+    // For combined calculation, use the after-federal portion for proper math
+    if (!treatment.stateTaxable) {
+      // If federal is also avoided, add full state rate
+      // If only state is avoided (treasury), add state rate adjusted for federal deduction
+      const statePortion = !treatment.federalTaxable
+        ? stateRate
+        : stateRate * (1 - federalRate);
+      taxAvoided += statePortion;
+    }
+
+    return taxAvoided;
+  }
+
+  /**
    * Calculate tax-equivalent yield for a fund
    * @param {Object} fund - Fund object with grossYield, expenseRatio, category
    * @param {Object} userProfile - User's tax profile
@@ -163,8 +195,8 @@ const TaxCalculator = (() => {
     // Calculate net yield (after expense ratio)
     const netYield = fund.grossYield - fund.expenseRatio;
 
-    // Determine effective tax rate based on fund category
-    const effectiveTaxRate = getEffectiveTaxRate(
+    // Get tax rate avoided (for TEY calculation of tax-advantaged funds)
+    const taxRateAvoided = getTaxRateAvoided(
       fund.category,
       federalRate,
       stateRate,
@@ -172,7 +204,7 @@ const TaxCalculator = (() => {
 
     // Calculate tax-equivalent yield
     // For taxable funds (including sweep and etf): TEY = Net Yield (no tax advantage)
-    // For tax-advantaged funds: TEY = Net Yield / (1 - Tax Rate)
+    // For tax-advantaged funds: TEY = Net Yield / (1 - Tax Rate Avoided)
     let taxEquivalentYield;
     const taxableCategories = ["taxable", "sweep", "etf"];
     if (taxableCategories.includes(fund.category)) {
@@ -180,8 +212,9 @@ const TaxCalculator = (() => {
       taxEquivalentYield = netYield;
     } else {
       // Tax-advantaged funds: calculate what taxable yield would need to be
+      // to equal this tax-free yield after paying taxes
       taxEquivalentYield =
-        effectiveTaxRate < 1 ? netYield / (1 - effectiveTaxRate) : netYield;
+        taxRateAvoided < 1 ? netYield / (1 - taxRateAvoided) : netYield;
     }
 
     // Calculate annual return on $10,000
@@ -195,7 +228,7 @@ const TaxCalculator = (() => {
       grossYield: fund.grossYield,
       expenseRatio: fund.expenseRatio,
       netYield: netYield,
-      effectiveTaxRate: effectiveTaxRate,
+      taxRateAvoided: taxRateAvoided,
       taxEquivalentYield: taxEquivalentYield,
       annualReturn: annualReturn,
       federalRate: federalRate,
@@ -227,8 +260,7 @@ const TaxCalculator = (() => {
    * @returns {string} Explanation text
    */
   function getRecommendationExplanation(topFund, userProfile) {
-    const { category, effectiveTaxRate, netYield, taxEquivalentYield } =
-      topFund;
+    const { category, taxRateAvoided, netYield, taxEquivalentYield } = topFund;
     const treatment = TAX_TREATMENT[category];
 
     const taxSavings = (
@@ -238,8 +270,8 @@ const TaxCalculator = (() => {
 
     let explanation = `This ${category.replace("-", " ")} fund offers the best after-tax return for your situation. `;
 
-    if (effectiveTaxRate > 0) {
-      explanation += `${treatment.description}. At your ${(effectiveTaxRate * 100).toFixed(1)}% effective tax rate, `;
+    if (taxRateAvoided > 0) {
+      explanation += `${treatment.description}. By avoiding ${(taxRateAvoided * 100).toFixed(1)}% in taxes, `;
       explanation += `this fund's ${netYield.toFixed(2)}% yield is equivalent to a ${taxEquivalentYield.toFixed(2)}% yield from a fully taxable investment. `;
 
       if (taxSavings > 0) {
@@ -276,6 +308,7 @@ const TaxCalculator = (() => {
     calculateFederalMarginalRate,
     calculateStateMarginalRate,
     getEffectiveTaxRate,
+    getTaxRateAvoided,
     calculateTaxEquivalentYield,
     calculateAllFunds,
     getRecommendationExplanation,

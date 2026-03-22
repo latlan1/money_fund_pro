@@ -113,32 +113,36 @@ function parsePercent(val) {
  */
 function categorizeFund(row) {
   const csvCategory = (row["Category"] || "").toLowerCase();
+  const name = (row["Fund Name"] || row["FundName"] || "").toLowerCase();
 
   // Check for sweep and ETF categories first (exact matches)
   if (csvCategory.includes("sweep")) return "sweep";
   if (csvCategory.includes("etf") || csvCategory.includes("money market etf"))
     return "etf";
+  if (name.includes("etf")) return "etf";
+  if (name.includes("sweep")) return "sweep";
+
+  // Check for state-specific municipal funds BEFORE general tax-exempt
+  // These are federal AND state tax-free for residents
+  if (name.includes("california") || name.includes("new york")) {
+    return "state-municipal";
+  }
 
   if (csvCategory.includes("treasury")) return "treasury";
+  if (name.includes("treasury")) return "treasury";
+
+  // General tax-exempt/municipal funds - federal tax-free only
   if (csvCategory.includes("tax-exempt")) return "municipal";
+  if (name.includes("tax-exempt") || name.includes("municipal")) {
+    return "municipal";
+  }
+
   if (
     csvCategory.includes("state-specific") ||
     csvCategory.includes("state municipal")
   )
     return "state-municipal";
   if (csvCategory.includes("taxable")) return "taxable";
-
-  // Fallback to fund name analysis
-  const name = (row["Fund Name"] || row["FundName"] || "").toLowerCase();
-  if (name.includes("etf")) return "etf";
-  if (name.includes("sweep")) return "sweep";
-  if (name.includes("treasury")) return "treasury";
-  if (name.includes("tax-exempt") || name.includes("municipal")) {
-    if (name.includes("california") || name.includes("new york")) {
-      return "state-municipal";
-    }
-    return "municipal";
-  }
 
   return "taxable";
 }
@@ -221,11 +225,23 @@ function transformRowToFund(row) {
 
 /**
  * Transform ALL CSV rows into fund objects for table display
+ * Filters out Ultra Shares funds ($1,000,000 minimum) - only includes "No Minimum" funds
  * @param {Array<Object>} rows - Parsed CSV rows
- * @returns {Array<Object>} Transformed fund objects (all tickers)
+ * @returns {Array<Object>} Transformed fund objects (No Minimum funds only)
  */
 function getAllFunds(rows) {
-  return rows.map(transformRowToFund);
+  return rows
+    .filter((row) => {
+      const min = getField(row, [
+        "Minimum Initial Investment",
+        "MinimumInitialInvestment",
+      ]);
+      // Only include funds with "No Minimum" - exclude $1,000,000 Ultra Shares
+      return (
+        min.toLowerCase().includes("no minimum") || min === "$0" || min === ""
+      );
+    })
+    .map(transformRowToFund);
 }
 
 /**
@@ -276,23 +292,49 @@ function sortCsvFilesByDate(csvList) {
 
 /**
  * Transform CSV rows into chart data points
+ * Filters out Ultra Shares funds ($1,000,000 minimum) - only includes "No Minimum" funds
+ * Also filters out funds with missing/invalid yields (e.g., "--")
  * @param {Array<Object>} rows - Parsed CSV rows
  * @param {string} dateStr - Date string for this snapshot
- * @returns {Array<Object>} Chart data points
+ * @returns {Array<Object>} Chart data points (No Minimum funds only, valid yields only)
  */
 function transformRowsForChart(rows, dateStr) {
-  return rows.map((row) => {
-    const yieldStr =
-      row["7-Day Yield (with waivers)"] || row["7DayYieldWithWaivers"] || "0";
-    const fundName = row["Fund Name"] || row["FundName"] || "";
-    const csvCategory = row["Category"] || "";
-    return {
-      category: getFundCategory(fundName, csvCategory),
-      fundName: fundName,
-      date: dateStr,
-      netYield: parseFloat(yieldStr.replace("%", "")),
-    };
-  });
+  return rows
+    .filter((row) => {
+      const min = getField(row, [
+        "Minimum Initial Investment",
+        "MinimumInitialInvestment",
+      ]);
+      // Only include funds with "No Minimum" - exclude $1,000,000 Ultra Shares
+      if (
+        !(
+          min.toLowerCase().includes("no minimum") ||
+          min === "$0" ||
+          min === ""
+        )
+      ) {
+        return false;
+      }
+      // Also filter out funds with missing/invalid yields (e.g., "--")
+      const yieldStr =
+        row["7-Day Yield (with waivers)"] || row["7DayYieldWithWaivers"] || "";
+      if (!yieldStr || yieldStr === "--" || yieldStr.trim() === "") {
+        return false;
+      }
+      return true;
+    })
+    .map((row) => {
+      const yieldStr =
+        row["7-Day Yield (with waivers)"] || row["7DayYieldWithWaivers"] || "0";
+      const fundName = row["Fund Name"] || row["FundName"] || "";
+      const csvCategory = row["Category"] || "";
+      return {
+        category: getFundCategory(fundName, csvCategory),
+        fundName: fundName,
+        date: dateStr,
+        netYield: parseFloat(yieldStr.replace("%", "")),
+      };
+    });
 }
 
 /**

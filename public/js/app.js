@@ -78,6 +78,9 @@ const App = (() => {
     elements.exportBtn = document.getElementById("export-btn");
     elements.fundSelector = document.getElementById("fund-selector");
     elements.dateRangeSelect = document.getElementById("date-range");
+    if (elements.dateRangeSelect && !elements.dateRangeSelect.value) {
+      elements.dateRangeSelect.value = "0"; // Default to All Time
+    }
     elements.lastUpdated = document.getElementById("last-updated");
     elements.footerDataDate = document.getElementById("footer-data-date");
     elements.taxSummary = document.getElementById("tax-summary");
@@ -303,7 +306,7 @@ const App = (() => {
   async function updateChart() {
     try {
       const days = elements.dateRangeSelect
-        ? parseInt(elements.dateRangeSelect.value)
+        ? parseInt(elements.dateRangeSelect.value || "0", 10) || 0
         : 0; // Default to All Time
       const data = await ChartHandler.fetchHistoricalData(days);
       if (data && data.length > 0) {
@@ -431,7 +434,7 @@ const App = (() => {
       expenseRatio,
       netYield,
       taxEquivalentYield,
-      effectiveTaxRate,
+      taxRateAvoided,
       federalRate,
       stateRate,
     } = fund;
@@ -462,7 +465,7 @@ const App = (() => {
     <h4>Step 2: Your Tax Rates</h4>
     <p>Federal Marginal Rate: <strong>${(federalRate * 100).toFixed(2)}%</strong></p>
     <p>State Marginal Rate: <strong>${(stateRate * 100).toFixed(2)}%</strong></p>
-    <p>Effective Combined Rate: <strong>${(effectiveTaxRate * 100).toFixed(2)}%</strong></p>
+    <p>Tax Rate Avoided by This Fund: <strong>${(taxRateAvoided * 100).toFixed(2)}%</strong></p>
 </div>
 
 <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
@@ -476,9 +479,9 @@ const App = (() => {
     } else {
       explanation += `
     <p>This fund has tax advantages, so we calculate what a taxable fund would need to yield:</p>
-    <p>Formula: TEY = Net Yield ÷ (1 - Tax Rate)</p>
-    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ (1 - ${(effectiveTaxRate * 100).toFixed(2)}%)</strong></p>
-    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ ${((1 - effectiveTaxRate) * 100).toFixed(2)}%</strong></p>`;
+    <p>Formula: TEY = Net Yield ÷ (1 - Tax Rate Avoided)</p>
+    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ (1 - ${(taxRateAvoided * 100).toFixed(2)}%)</strong></p>
+    <p><strong>${taxEquivalentYield.toFixed(2)}% = ${netYield.toFixed(2)}% ÷ ${((1 - taxRateAvoided) * 100).toFixed(2)}%</strong></p>`;
     }
 
     explanation += `

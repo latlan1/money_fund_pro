@@ -243,15 +243,15 @@ describe("Table Data Loading", () => {
   });
 
   describe("getAllFunds", () => {
-    test("returns all funds without filtering", () => {
+    test("returns only No Minimum funds (excludes Ultra Shares)", () => {
       const rows = parseCSV(SAMPLE_CSV);
       const result = getAllFunds(rows);
 
-      // Should include all 7 funds (including Ultra, Sweep, and ETF)
-      expect(result.length).toBe(7);
+      // Should include 6 funds - excludes SNAXX (Ultra Shares with $1M minimum)
+      expect(result.length).toBe(6);
     });
 
-    test("includes sweep and ETF funds", () => {
+    test("includes sweep and ETF funds (they have No Minimum)", () => {
       const rows = parseCSV(SAMPLE_CSV);
       const result = getAllFunds(rows);
 
@@ -264,13 +264,13 @@ describe("Table Data Loading", () => {
       expect(etf.category).toBe("etf");
     });
 
-    test("includes funds with high minimum investment", () => {
+    test("excludes funds with high minimum investment", () => {
       const rows = parseCSV(SAMPLE_CSV);
       const result = getAllFunds(rows);
 
+      // Ultra Shares ($1,000,000 minimum) should be excluded
       const ultraShares = result.find((f) => f.symbol === "SNAXX");
-      expect(ultraShares).toBeDefined();
-      expect(ultraShares.minimumInvestment).toBe("$1,000,000");
+      expect(ultraShares).toBeUndefined();
     });
   });
 
@@ -388,11 +388,12 @@ describe("Date Parsing and Sorting", () => {
 
 describe("Chart Data Processing", () => {
   describe("transformRowsForChart", () => {
-    test("transforms CSV rows to chart data points", () => {
+    test("transforms CSV rows to chart data points (excluding Ultra Shares)", () => {
       const rows = parseCSV(SAMPLE_CSV);
       const result = transformRowsForChart(rows, "01-13-2026");
 
-      expect(result.length).toBe(7);
+      // Should be 6 funds - excludes SNAXX (Ultra Shares with $1M minimum)
+      expect(result.length).toBe(6);
       expect(result[0]).toHaveProperty("category");
       expect(result[0]).toHaveProperty("fundName");
       expect(result[0]).toHaveProperty("date");

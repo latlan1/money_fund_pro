@@ -14,6 +14,18 @@ const path = require("path");
 
 const SCHWAB_URL = "https://www.schwab.com/money-market-funds";
 
+// Allow passing a local HTML file to parse instead of fetching the live site.
+// Usage: node scripts/scrape-schwab.js --file=path/to/downloaded.html
+function getCliOptions() {
+  const opts = { htmlFile: null };
+  for (const arg of process.argv.slice(2)) {
+    if (arg.startsWith("--file=")) {
+      opts.htmlFile = arg.replace("--file=", "");
+    }
+  }
+  return opts;
+}
+
 // Expense ratios don't change frequently, so we maintain them here
 const EXPENSE_RATIOS = {
   SWVXX: { gross: "0.35%", net: "0.34%" },
@@ -346,10 +358,22 @@ function getTodayDate() {
 async function main() {
   console.log("=== Schwab Money Market Fund Scraper ===\n");
 
+  const opts = getCliOptions();
+
   try {
-    // Fetch the page
-    const html = await fetchPage(SCHWAB_URL);
-    console.log(`Fetched ${html.length} bytes\n`);
+    // Fetch or read the page
+    let html;
+    if (opts.htmlFile) {
+      const htmlPath = path.resolve(opts.htmlFile);
+      if (!fs.existsSync(htmlPath)) {
+        throw new Error(`HTML file not found: ${htmlPath}`);
+      }
+      console.log(`Reading local HTML: ${htmlPath}`);
+      html = fs.readFileSync(htmlPath, "utf8");
+    } else {
+      html = await fetchPage(SCHWAB_URL);
+      console.log(`Fetched ${html.length} bytes\n`);
+    }
 
     // Extract yields
     const yields = extractYields(html);
