@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=5" />
+    <link rel="stylesheet" href="css/styles.css?v=7" />
   </head>
   <body>
     <!-- Header -->
@@ -151,38 +151,18 @@
             <button class="btn btn-secondary" id="export-btn">
               <span class="btn-icon">💾</span> Export
             </button>
-          </div>
+        </div>
         </div>
 
-        <!-- Loading State -->
-        <div class="loading" id="loading">
-          <div class="loading-spinner"></div>
-          <p class="loading-text">Loading fund data...</p>
+        <!-- Results Tabs -->
+        <div class="results-tabs hidden" id="results-tabs">
+          <button class="tab-btn active" data-tab="table">Table</button>
+          <button class="tab-btn" data-tab="heatmap">Heatmap</button>
+          <button class="tab-btn" data-tab="breakdown">Tax Breakdown</button>
         </div>
 
-        <!-- Recommendation Card -->
-        <div class="recommendation-card hidden" id="recommendation-card">
-          <div class="recommendation-card__badge">🎯 Top Recommendation</div>
-          <h3 class="recommendation-card__title" id="rec-fund-name">--</h3>
-          <div class="recommendation-card__stats">
-            <div class="stat">
-              <div class="stat__value" id="rec-tey">--</div>
-              <div class="stat__label">Tax-Equivalent Yield</div>
-            </div>
-            <div class="stat">
-              <div class="stat__value" id="rec-net-yield">--</div>
-              <div class="stat__label">Net Yield</div>
-            </div>
-            <div class="stat">
-              <div class="stat__value" id="rec-annual-return">--</div>
-              <div class="stat__label">Est. Annual Return on $10k</div>
-            </div>
-          </div>
-          <p class="recommendation-card__explanation" id="rec-explanation">
-            --
-          </p>
-        </div>
-
+        <!-- Table Panel -->
+        <div class="tab-panel" id="panel-table">
         <!-- Results Table -->
         <div class="table-wrapper hidden" id="table-wrapper">
           <div class="table-scroll-container" id="table-scroll-container">
@@ -248,6 +228,13 @@
             </p>
           </div>
         </div>
+        </div><!-- end panel-table -->
+
+        <!-- Heatmap Panel -->
+        <div class="tab-panel hidden" id="panel-heatmap"></div>
+
+        <!-- Tax Breakdown Panel -->
+        <div class="tab-panel hidden" id="panel-breakdown"></div>
 
         <!-- Error State -->
         <div class="error-state hidden" id="error-state">
@@ -386,9 +373,9 @@
 
     <!-- Scripts loaded at end of body in correct order -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="js/data-utils.js?v=6"></script>
-    <script src="js/tax-calculator.js?v=6"></script>
-    <script src="js/chart-handler.js?v=6"></script>
-    <script src="js/app.js?v=6"></script>
+    <script src="js/data-utils.js?v=7"></script>
+    <script src="js/tax-calculator.js?v=7"></script>
+    <script src="js/chart-handler.js?v=7"></script>
+    <script src="js/app.js?v=7"></script>
   </body>
 </html>

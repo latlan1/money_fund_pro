@@ -12,10 +12,10 @@ const App = (() => {
       filingStatus: "single",
       state: "MO",
     },
-    selectedFunds: [],
     sortColumn: "taxEquivalentYield",
     sortDirection: "desc",
     csvFilename: null,
+    currentTab: "table",
   };
 
   // DOM elements
@@ -31,10 +31,14 @@ const App = (() => {
     scrollIndicator: null,
     refreshBtn: null,
     exportBtn: null,
-    fundSelector: null,
     dateRangeSelect: null,
     lastUpdated: null,
     taxSummary: null,
+    resultsTabs: null,
+    panelTable: null,
+    panelHeatmap: null,
+    panelBreakdown: null,
+    tabBtns: null,
   };
 
   /**
@@ -76,7 +80,6 @@ const App = (() => {
     elements.scrollIndicator = document.getElementById("scroll-indicator");
     elements.refreshBtn = document.getElementById("refresh-btn");
     elements.exportBtn = document.getElementById("export-btn");
-    elements.fundSelector = document.getElementById("fund-selector");
     elements.dateRangeSelect = document.getElementById("date-range");
     if (elements.dateRangeSelect && !elements.dateRangeSelect.value) {
       elements.dateRangeSelect.value = "0"; // Default to All Time
@@ -84,6 +87,11 @@ const App = (() => {
     elements.lastUpdated = document.getElementById("last-updated");
     elements.footerDataDate = document.getElementById("footer-data-date");
     elements.taxSummary = document.getElementById("tax-summary");
+    elements.resultsTabs = document.getElementById("results-tabs");
+    elements.panelTable = document.getElementById("panel-table");
+    elements.panelHeatmap = document.getElementById("panel-heatmap");
+    elements.panelBreakdown = document.getElementById("panel-breakdown");
+    elements.tabBtns = document.querySelectorAll(".tab-btn");
   }
 
   function setupEventListeners() {
@@ -111,6 +119,10 @@ const App = (() => {
     if (elements.dateRangeSelect) {
       elements.dateRangeSelect.addEventListener("change", updateChart);
     }
+
+    elements.tabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
 
     // Handle scroll indicator visibility
     if (elements.tableScrollContainer && elements.scrollIndicator) {
@@ -144,28 +156,22 @@ const App = (() => {
     try {
       // Dynamically pick the newest CSV in /public matching schwab_money_funds_*.csv
       const csvList = await fetchCsvList();
-      console.log("CSV list fetched:", csvList);
       if (!csvList.length) throw new Error("No CSV files found");
 
       // Sort by date using shared utility (handles MM-DD-YYYY format)
       const sortedList = DataUtils.sortCsvFilesByDate(csvList);
-      console.log("Sorted list:", sortedList);
       const latest = sortedList[0];
       const filename = latest.name;
       state.csvFilename = filename;
-      console.log("Loading CSV:", filename);
 
       const response = await fetch(filename + "?cb=" + Date.now());
       if (!response.ok) throw new Error(`Could not load ${filename}`);
 
       const text = await response.text();
-      console.log("CSV text length:", text.length);
       const data = DataUtils.parseCSV(text);
-      console.log("Parsed rows:", data.length);
 
       // Use shared function to get ALL funds (not just filtered retail)
       state.funds = DataUtils.getAllFunds(data);
-      console.log("All funds loaded:", state.funds.length);
 
       updateLastUpdated(latest.date);
       showLoading(false);
@@ -177,18 +183,15 @@ const App = (() => {
   }
 
   function calculateAndDisplay() {
-    console.log("calculateAndDisplay called, funds:", state.funds.length);
-    if (!state.funds.length) {
-      console.warn("No funds to calculate");
-      return;
-    }
+    if (!state.funds.length) return;
     state.calculatedResults = TaxCalculator.calculateAllFunds(
       state.funds,
       state.userProfile,
     );
-    console.log("Calculated results:", state.calculatedResults.length);
     displayRecommendation();
     displayResultsTable();
+    renderHeatmap(state.calculatedResults);
+    renderBreakdown(state.calculatedResults);
   }
 
   function displayRecommendation() {
@@ -266,6 +269,7 @@ const App = (() => {
       elements.resultsTbody.appendChild(row);
     });
     elements.tableWrapper.classList.remove("hidden");
+    if (elements.resultsTabs) elements.resultsTabs.classList.remove("hidden");
 
     // Update scroll indicator visibility after table is populated
     setTimeout(updateScrollIndicator, 0);
@@ -360,11 +364,13 @@ const App = (() => {
   function showLoading(show) {
     elements.loading.classList.toggle("hidden", !show);
     elements.tableWrapper.classList.toggle("hidden", show);
+    if (elements.resultsTabs) elements.resultsTabs.classList.toggle("hidden", show);
   }
 
   function showError(msg) {
     document.getElementById("error-message").textContent = msg;
     elements.errorState.classList.remove("hidden");
+    if (elements.resultsTabs) elements.resultsTabs.classList.add("hidden");
   }
 
   function hideError() {
@@ -561,12 +567,126 @@ const App = (() => {
     document.getElementById("modal-body").innerHTML = explanation;
   }
 
+  function switchTab(tabName) {
+    state.currentTab = tabName;
+    elements.tabBtns.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.tab === tabName);
+    });
+    elements.panelTable.classList.toggle("hidden", tabName !== "table");
+    elements.panelHeatmap.classList.toggle("hidden", tabName !== "heatmap");
+    elements.panelBreakdown.classList.toggle("hidden", tabName !== "breakdown");
+  }
+
+  function renderHeatmap(results) {
+    if (!results || results.length === 0) return;
+
+    const typeLabels = {
+      taxable: "Taxable",
+      treasury: "Treasury",
+      municipal: "Municipal",
+      "state-municipal": "State Municipal",
+      sweep: "Sweep",
+      etf: "ETF",
+    };
+
+    function bubbleStyle(rank, total) {
+      const pct = rank / total;
+      if (pct < 0.15)
+        return { bg: "#a7f3d0", fg: "#064e3b", border: "2px solid #10b981" };
+      if (pct < 0.4)
+        return { bg: "#d1fae5", fg: "#065f46", border: "1px solid #6ee7b7" };
+      if (pct < 0.7)
+        return { bg: "#fef9c3", fg: "#713f12", border: "1px solid #fcd34d" };
+      return { bg: "#fee2e2", fg: "#991b1b", border: "1px solid #fca5a5" };
+    }
+
+    const total = results.length;
+    const grid = document.createElement("div");
+    grid.className = "bubble-grid";
+
+    results.forEach((fund, i) => {
+      const style = bubbleStyle(i, total);
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.style.cssText = `background:${style.bg};color:${style.fg};border:${style.border};`;
+      const label = typeLabels[fund.category] || fund.category;
+      bubble.innerHTML = `
+        ${i === 0 ? '<span class="bubble-star">★</span>' : ""}
+        <div class="bubble-ticker">${fund.symbol}</div>
+        <div class="bubble-tey">${TaxCalculator.formatPercent(fund.taxEquivalentYield)}</div>
+        <div class="bubble-category">${label}</div>
+      `;
+      bubble.addEventListener("click", () => showMathExplanation(fund));
+      grid.appendChild(bubble);
+    });
+
+    const scaleBar = document.createElement("div");
+    scaleBar.className = "tey-scale-bar";
+    scaleBar.innerHTML = `
+      <span>Low TEY</span>
+      <div class="tey-scale-gradient"></div>
+      <span>High TEY</span>
+    `;
+
+    elements.panelHeatmap.innerHTML = "";
+    elements.panelHeatmap.appendChild(grid);
+    elements.panelHeatmap.appendChild(scaleBar);
+  }
+
+  function renderBreakdown(results) {
+    if (!results || results.length === 0) return;
+
+    const maxTey = results[0].taxEquivalentYield;
+    if (maxTey <= 0) return;
+
+    const legend = document.createElement("div");
+    legend.className = "breakdown-legend";
+    legend.innerHTML = `
+      <div class="breakdown-legend-item">
+        <div class="breakdown-legend-swatch" style="background:#10b981;"></div>Tax saved
+      </div>
+      <div class="breakdown-legend-item">
+        <div class="breakdown-legend-swatch" style="background:#3b82f6;opacity:0.85;"></div>Net yield
+      </div>
+      <div class="breakdown-legend-item">
+        <div class="breakdown-legend-swatch" style="background:#f59e0b;"></div>Expense ratio
+      </div>
+    `;
+
+    const rows = document.createElement("div");
+    rows.className = "breakdown-rows";
+
+    results.forEach((fund, i) => {
+      const taxSavedYield = fund.taxEquivalentYield - fund.netYield;
+      const expPct = (fund.expenseRatio / maxTey) * 100;
+      const netPct = (fund.netYield / maxTey) * 100;
+      const taxPct = (taxSavedYield / maxTey) * 100;
+
+      const row = document.createElement("div");
+      row.className = "breakdown-row";
+      row.innerHTML = `
+        <span class="breakdown-ticker">${fund.symbol}</span>
+        <div class="stacked-bar">
+          <div class="seg-tax" style="width:${Math.max(0, taxPct).toFixed(1)}%"></div>
+          <div class="seg-net" style="width:${Math.max(0, netPct).toFixed(1)}%"></div>
+          <div class="seg-exp" style="width:${Math.max(0, expPct).toFixed(1)}%"></div>
+        </div>
+        <span class="breakdown-tey${i === 0 ? " top" : ""}">${TaxCalculator.formatPercent(fund.taxEquivalentYield)}</span>
+      `;
+      row.addEventListener("click", () => showMathExplanation(fund));
+      rows.appendChild(row);
+    });
+
+    elements.panelBreakdown.innerHTML = "";
+    elements.panelBreakdown.appendChild(legend);
+    elements.panelBreakdown.appendChild(rows);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     init().catch((err) => console.error("Initialization failed:", err));
   });
 
   return {
     refreshData: handleRefresh,
-    categorizeFund: DataUtils.categorizeFund,
   };
 })();
